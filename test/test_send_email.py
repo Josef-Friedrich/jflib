@@ -9,21 +9,21 @@ class TestSendEmail(unittest.TestCase):
         with mock.patch('smtplib.SMTP') as SMTP:
             send_email(
                 from_addr='from@example.com',
-                to_addr_list=['to@example.com'],
-                cc_addr_list=['cc@example.com'],
+                to_addr='to@example.com',
                 subject='Subject',
-                message='Message',
-                login='Login',
-                password='Password',
-                smtpserver='smtp.example.com:587'
+                body='Message',
+                smtp_login='Login',
+                smtp_password='Password',
+                smtp_server='smtp.example.com:587'
             )
 
         SMTP.assert_called_with('smtp.example.com:587')
         server = SMTP.return_value
         server.login.assert_called_with('Login', 'Password')
-        server.sendmail.assert_called_with(
-            'from@example.com',
-            ['to@example.com'],
-            'From: from@example.com\nTo: to@example.com\nCc: cc@example.com\n'
-            'Subject: Subject\n\nMessage'
+        call_args = server.sendmail.call_args[0]
+        self.assertEqual(call_args[0], 'from@example.com')
+        self.assertEqual(call_args[1], ['to@example.com'])
+        self.assertIn(
+            'From: from@example.com\nTo: to@example.com\n',
+            call_args[2]
         )
