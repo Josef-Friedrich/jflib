@@ -62,18 +62,18 @@ class Watch:
         self.queue = queue.Queue()
         self.command = command
 
-    def _stdout_stderr_reader(self, pipe, channel):
+    def _stdout_stderr_reader(self, pipe, stream):
         try:
             with pipe:
                 for line in iter(pipe.readline, b''):
-                    self.queue.put((line, channel))
+                    self.queue.put((line, stream))
         finally:
             self.queue.put(None)
 
-    def _start_thread(self, pipe, channel):
+    def _start_thread(self, pipe, stream):
         threading.Thread(
             target=self._stdout_stderr_reader,
-            args=[pipe, channel]
+            args=[pipe, stream]
         ).start()
 
     def run(self):
@@ -85,14 +85,14 @@ class Watch:
         self._start_thread(process.stderr, 'stderr')
 
         for _ in range(2):
-            for line, channel in iter(self.queue.get, None):
+            for line, stream in iter(self.queue.get, None):
                 if line:
                     line = line.decode('utf-8').strip()
 
                 if line:
-                    if channel == 'stderr':
+                    if stream == 'stderr':
                         self.log.error(line)
-                    if channel == 'stdout':
+                    if stream == 'stdout':
                         self.log.debug(line)
 
         process.wait()
