@@ -7,6 +7,17 @@ import uuid
 
 from . import termcolor
 
+# CRITICAL 50
+# ERROR 40
+# WARNING 30
+# INFO 20
+# DEBUG 10
+# NOTSET 0
+STDERR = 35
+logging.addLevelName(STDERR, 'STDERR')
+STDOUT = 5
+logging.addLevelName(STDOUT, 'STDOUT')
+
 
 class StreamAndMemoryHandler(logging.Handler):
 
@@ -27,7 +38,7 @@ class StreamAndMemoryHandler(logging.Handler):
             color = 'white'
         elif level == 'WARNING':
             color = 'yellow'
-        elif level == 'ERROR':
+        elif level in ('ERROR', 'STDERR'):
             color = 'red'
         else:
             color = 'white'
@@ -57,7 +68,7 @@ class Watch:
             datefmt='%Y%m%d_%H%M%S',
         )
         self.log_handler.setFormatter(formatter)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(STDOUT)
         self.log.addHandler(self.log_handler)
         self.queue = queue.Queue()
         self.command = command
@@ -91,9 +102,9 @@ class Watch:
 
                 if line:
                     if stream == 'stderr':
-                        self.log.error(line)
+                        self.log.log(STDERR, line)
                     if stream == 'stdout':
-                        self.log.debug(line)
+                        self.log.log(STDOUT, line)
 
         process.wait()
         return process

@@ -15,7 +15,7 @@ class TestCommandWatcher(unittest.TestCase):
             process = watch.run()
         self.assertEqual(process.returncode, 0)
         self.assertEqual(len(output), 1)
-        self.assertIn('DEBUG', output[0])
+        self.assertIn('STDOUT', output[0])
         self.assertIn('One line to stdout!', output[0])
 
     def test_watch_stderr(self):
@@ -24,5 +24,5 @@ class TestCommandWatcher(unittest.TestCase):
             process = watch.run()
         self.assertEqual(process.returncode, 1)
         self.assertEqual(len(output), 1)
-        self.assertIn('ERROR', output[0])
+        self.assertIn('STDERR', output[0])
         self.assertIn('One line to stderr!', output[0])
