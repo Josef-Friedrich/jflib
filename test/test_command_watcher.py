@@ -14,6 +14,20 @@ class TestLogging(unittest.TestCase):
         logger = setup_logging(handler)
         self.assertEqual(len(logger.name), 36)
 
+    def test_log_stdout(self):
+        handler = WatchLoggingHandler()
+        logger = setup_logging(handler)
+        logger.stdout('stdout')
+        self.assertEqual(len(handler.buffer), 1)
+
+    def test_log_stderr(self):
+        handler = WatchLoggingHandler()
+        logger = setup_logging(handler)
+        logger.stderr('stderr')
+        self.assertEqual(len(logger.handlers[0].buffer), 1)
+        self.assertEqual(logger.handlers[0].buffer[0].msg, 'stderr')
+        self.assertEqual(logger.handlers[0].buffer[0].levelname, 'STDERR')
+
 
 class TestCommandWatcher(unittest.TestCase):
 

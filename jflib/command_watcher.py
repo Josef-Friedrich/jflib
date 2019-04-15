@@ -62,12 +62,24 @@ class StreamAndMemoryHandler(logging.Handler):
 class WatchLoggingHandler(BufferingHandler):
 
     def __init__(self):
-        BufferingHandler.__init__(self, capacity=100000)
+        BufferingHandler.__init__(self, capacity=1000000)
 
     def emit(self, record):
         self.buffer.append(record)
         if self.shouldFlush(record):
             self.flush()
+
+
+def _log_stdout(self, message, *args, **kws):
+    # Yes, logger takes its '*args' as 'args'.
+    self._log(STDOUT, message, args, **kws)
+logging.Logger.stdout = _log_stdout
+
+
+def _log_stderr(self, message, *args, **kws):
+    # Yes, logger takes its '*args' as 'args'.
+    self._log(STDERR, message, args, **kws)
+logging.Logger.stderr = _log_stderr
 
 
 def setup_logging(handler):
