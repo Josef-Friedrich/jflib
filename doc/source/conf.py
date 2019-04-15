@@ -26,7 +26,6 @@ todo_include_todos = False
 html_static_path = []
 htmlhelp_basename = 'jflibdoc'
 autodoc_default_options = {
-    'members': True,
     'undoc-members': True,
     'private-members': True,
     'show-inheritance': True,
