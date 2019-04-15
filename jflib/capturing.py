@@ -1,3 +1,29 @@
+"""
+Capture the stdout or stderr output.
+
+Capture stdout:
+
+.. code:: python
+
+    with Capturing() as output:
+        print('line 1')
+
+is equivalent to
+
+.. code:: python
+
+    with Capturing(stream='stdout') as output:
+        print('line 1')
+
+Capture stderr:
+
+.. code:: python
+
+    with Capturing(stream='stderr') as output:
+        print('line 1', file=sys.stderr)
+
+"""
+
 from io import StringIO
 import sys
 import re
