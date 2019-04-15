@@ -8,7 +8,6 @@ extensions = []
 extensions += ['sphinx.ext.autodoc']
 extensions += ['sphinx.ext.intersphinx']
 extensions += ['sphinx.ext.viewcode']
-extensions += ['sphinxarg.ext']
 
 templates_path = ['_templates']
 source_suffix = '.rst'
