@@ -3,6 +3,7 @@ import queue
 import re
 import subprocess
 import threading
+import uuid
 
 from . import termcolor
 
@@ -48,7 +49,8 @@ class StreamAndMemoryHandler(logging.Handler):
 class Watch:
 
     def __init__(self, command):
-        self.log = logging.getLogger(__name__)
+        # To get a fresh logger on each watch action.
+        self.log = logging.getLogger(name=str(uuid.uuid1()))
         self.log_handler = StreamAndMemoryHandler()
         formatter = logging.Formatter(
             fmt='%(asctime)s_%(msecs)03d:%(levelname)s:%(message)s',
