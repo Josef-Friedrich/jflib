@@ -2,9 +2,17 @@ import os
 import unittest
 
 from jflib.capturing import Capturing
-from jflib.command_watcher import Watch
+from jflib.command_watcher import Watch, setup_logging, WatchLoggingHandler
 
 DIR_FILES = os.path.join(os.path.dirname(__file__), 'files')
+
+
+class TestLogging(unittest.TestCase):
+
+    def test_initialisation(self):
+        handler = WatchLoggingHandler()
+        logger = setup_logging(handler)
+        self.assertEqual(len(logger.name), 36)
 
 
 class TestCommandWatcher(unittest.TestCase):

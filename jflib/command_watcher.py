@@ -4,6 +4,8 @@ import re
 import subprocess
 import threading
 import uuid
+from logging.handlers import BufferingHandler
+
 
 from . import termcolor
 
@@ -55,6 +57,30 @@ class StreamAndMemoryHandler(logging.Handler):
 
     def __str__(self):
         return '\n'.join(self._records)
+
+
+class WatchLoggingHandler(BufferingHandler):
+
+    def __init__(self):
+        BufferingHandler.__init__(self, capacity=100000)
+
+    def emit(self, record):
+        self.buffer.append(record)
+        if self.shouldFlush(record):
+            self.flush()
+
+
+def setup_logging(handler):
+    # To get a fresh logger on each watch action.
+    logger = logging.getLogger(name=str(uuid.uuid1()))
+    formatter = logging.Formatter(
+        fmt='%(asctime)s_%(msecs)03d:%(levelname)s:%(message)s',
+        datefmt='%Y%m%d_%H%M%S',
+    )
+    handler.setFormatter(formatter)
+    logger.setLevel(STDOUT)
+    logger.addHandler(handler)
+    return logger
 
 
 class Watch:
