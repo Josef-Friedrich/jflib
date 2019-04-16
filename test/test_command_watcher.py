@@ -53,6 +53,79 @@ class TestLogging(unittest.TestCase):
         self.assertIn('debug', handler.all_records)
 
 
+class TestColorizedPrint(unittest.TestCase):
+
+    def setUp(self):
+        self.logger, _ = setup_logging()
+
+    def test_critical(self):
+        with Capturing(stream='stderr') as output:
+            self.logger.critical('CRITICAL 50')
+        self.assertEqual(
+            output[0][20:],
+            '\x1b[1m\x1b[7m\x1b[31m CRITICAL '
+            '\x1b[0m \x1b[1m\x1b[31mCRITICAL 50\x1b[0m'
+        )
+
+    def test_error(self):
+        with Capturing(stream='stderr') as output:
+            self.logger.error('ERROR 40')
+        self.assertEqual(
+            output[0][20:],
+            '\x1b[7m\x1b[31m ERROR    \x1b[0m \x1b[31mERROR 40\x1b[0m'
+        )
+
+    def test_stderr(self):
+        with Capturing(stream='stderr') as output:
+            self.logger.stderr('STDERR 35')
+        self.assertEqual(
+            output[0][20:],
+            '\x1b[2m\x1b[7m\x1b[31m STDERR   '
+            '\x1b[0m \x1b[2m\x1b[31mSTDERR 35\x1b[0m'
+        )
+
+    def test_warning(self):
+        with Capturing() as output:
+            self.logger.warning('WARNING 30')
+        self.assertEqual(
+            output[0][20:],
+            '\x1b[7m\x1b[33m WARNING  \x1b[0m \x1b[33mWARNING 30\x1b[0m'
+        )
+
+    def test_info(self):
+        with Capturing() as output:
+            self.logger.info('INFO 20')
+        self.assertEqual(
+            output[0][20:],
+            '\x1b[7m\x1b[32m INFO     \x1b[0m \x1b[32mINFO 20\x1b[0m'
+        )
+
+    def test_debug(self):
+        with Capturing() as output:
+            self.logger.debug('DEBUG 10')
+        self.assertEqual(
+            output[0][20:],
+            '\x1b[7m\x1b[37m DEBUG    \x1b[0m \x1b[37mDEBUG 10\x1b[0m'
+        )
+
+    def test_stdout(self):
+        with Capturing() as output:
+            self.logger.stdout('STDOUT 5')
+        self.assertEqual(
+            output[0][20:],
+            '\x1b[2m\x1b[7m\x1b[37m STDOUT   \x1b[0m '
+            '\x1b[2m\x1b[37mSTDOUT 5\x1b[0m'
+        )
+
+    def test_noset(self):
+        with Capturing() as output:
+            self.logger.log(1, 'NOTSET 0')
+        self.assertEqual(
+            output[0][20:],
+            '\x1b[7m\x1b[30m Level 1  \x1b[0m \x1b[30mNOTSET 0\x1b[0m'
+        )
+
+
 class TestCommandWatcher(unittest.TestCase):
 
     def test_watch_stdout(self):
