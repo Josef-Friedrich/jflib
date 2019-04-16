@@ -59,7 +59,7 @@ class StreamAndMemoryHandler(logging.Handler):
         return '\n'.join(self._records)
 
 
-class WatchLoggingHandler(BufferingHandler):
+class LoggingHandler(BufferingHandler):
 
     def __init__(self):
         BufferingHandler.__init__(self, capacity=1000000)
@@ -68,6 +68,29 @@ class WatchLoggingHandler(BufferingHandler):
         self.buffer.append(record)
         if self.shouldFlush(record):
             self.flush()
+
+    @property
+    def stdout(self):
+        messages = []
+        for record in self.buffer:
+            if record.levelname == 'STDOUT':
+                messages.append(record.msg)
+        return '\n'.join(messages)
+
+    @property
+    def stderr(self):
+        messages = []
+        for record in self.buffer:
+            if record.levelname == 'STDERR':
+                messages.append(record.msg)
+        return '\n'.join(messages)
+
+    @property
+    def all_records(self):
+        messages = []
+        for record in self.buffer:
+            messages.append(self.format(record))
+        return '\n'.join(messages)
 
 
 def _log_stdout(self, message, *args, **kws):
@@ -82,7 +105,8 @@ def _log_stderr(self, message, *args, **kws):
 logging.Logger.stderr = _log_stderr
 
 
-def setup_logging(handler):
+def setup_logging():
+    handler = LoggingHandler()
     # To get a fresh logger on each watch action.
     logger = logging.getLogger(name=str(uuid.uuid1()))
     formatter = logging.Formatter(
@@ -92,7 +116,7 @@ def setup_logging(handler):
     handler.setFormatter(formatter)
     logger.setLevel(STDOUT)
     logger.addHandler(handler)
-    return logger
+    return (logger, handler)
 
 
 class Watch:
