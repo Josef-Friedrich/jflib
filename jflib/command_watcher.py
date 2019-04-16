@@ -1,12 +1,13 @@
+from logging.handlers import BufferingHandler
 import logging
 import queue
 import re
+import shlex
 import subprocess
-import threading
-import uuid
-import time
-from logging.handlers import BufferingHandler
 import sys
+import threading
+import time
+import uuid
 
 from . import termcolor
 
@@ -23,45 +24,8 @@ logging.addLevelName(STDERR, 'STDERR')
 STDOUT = 5
 logging.addLevelName(STDOUT, 'STDOUT')
 
+LOGFMT='%(asctime)s_%(msecs)03d %(levelname)s %(message)s'
 DATEFMT = '%Y%m%d_%H%M%S'
-
-class StreamAndMemoryHandler(logging.Handler):
-
-    def __init__(self):
-        logging.Handler.__init__(self)
-        self._records = []
-
-    @staticmethod
-    def _print_colorized(record):
-        match = re.search(r'([0-9_]+):([A-Z]+):(.*)', record)
-        time = match.group(1)
-        level = match.group(2)
-        msg = match.group(3)
-
-        if level == 'DEBUG':
-            color = 'grey'
-        elif level == 'INFO':
-            color = 'white'
-        elif level == 'WARNING':
-            color = 'yellow'
-        elif level in ('ERROR', 'STDERR'):
-            color = 'red'
-        else:
-            color = 'white'
-        print('{}:{}:{}'.format(
-            time,
-            termcolor.colored(level.ljust(8), color, attrs=['reverse']),
-            msg,
-        ))
-
-    def emit(self, record):
-        record = self.format(record)
-        self._records.append(record)
-        self._print_colorized(record)
-
-    def __str__(self):
-        return '\n'.join(self._records)
-
 
 class LoggingHandler(BufferingHandler):
 
@@ -168,13 +132,10 @@ logging.Logger.stderr = _log_stderr
 
 
 def setup_logging():
-    handler = LoggingHandler()
     # To get a fresh logger on each watch action.
     logger = logging.getLogger(name=str(uuid.uuid1()))
-    formatter = logging.Formatter(
-        fmt='%(asctime)s_%(msecs)03d:%(levelname)s:%(message)s',
-        datefmt=DATEFMT,
-    )
+    formatter = logging.Formatter(fmt=LOGFMT, datefmt=DATEFMT)
+    handler = LoggingHandler()
     handler.setFormatter(formatter)
     logger.setLevel(0)
     logger.addHandler(handler)
@@ -183,19 +144,9 @@ def setup_logging():
 
 class Watch:
 
-    def __init__(self, command):
-        # To get a fresh logger on each watch action.
-        self.log = logging.getLogger(name=str(uuid.uuid1()))
-        self.log_handler = StreamAndMemoryHandler()
-        formatter = logging.Formatter(
-            fmt='%(asctime)s_%(msecs)03d:%(levelname)s:%(message)s',
-            datefmt='%Y%m%d_%H%M%S',
-        )
-        self.log_handler.setFormatter(formatter)
-        self.log.setLevel(STDOUT)
-        self.log.addHandler(self.log_handler)
+    def __init__(self):
+        self.log, self.log_handler = setup_logging()
         self.queue = queue.Queue()
-        self.command = command
 
     def _stdout_stderr_reader(self, pipe, stream):
         try:
@@ -211,9 +162,11 @@ class Watch:
             args=[pipe, stream]
         ).start()
 
-    def run(self):
-        process = subprocess.Popen(self.command,
-                                   stdout=subprocess.PIPE,
+    def run(self, args):
+        if isinstance(args, str):
+            args = shlex.split(args)
+        self.log.info('Run command: {}'.format(' '.join(args)))
+        process = subprocess.Popen(args, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, bufsize=1)
 
         self._start_thread(process.stdout, 'stdout')
@@ -226,9 +179,9 @@ class Watch:
 
                 if line:
                     if stream == 'stderr':
-                        self.log.log(STDERR, line)
+                        self.log.stderr(line)
                     if stream == 'stdout':
-                        self.log.log(STDOUT, line)
+                        self.log.stdout(line)
 
         process.wait()
         return process

@@ -128,20 +128,30 @@ class TestColorizedPrint(unittest.TestCase):
 
 class TestCommandWatcher(unittest.TestCase):
 
+    def setUp(self):
+        self.cmd_stderr = os.path.join(DIR_FILES, 'stderr.sh')
+        self.cmd_stdout = os.path.join(DIR_FILES, 'stdout.sh')
+
     def test_watch_stdout(self):
-        watch = Watch([os.path.join(DIR_FILES, 'stdout.sh')])
+        watch = Watch()
         with Capturing() as output:
-            process = watch.run()
+            process = watch.run(self.cmd_stdout)
         self.assertEqual(process.returncode, 0)
-        self.assertEqual(len(output), 1)
-        self.assertIn('STDOUT', output[0])
-        self.assertIn('One line to stdout!', output[0])
+        self.assertEqual(len(output), 2)
+        self.assertIn('STDOUT', output[1])
+        self.assertIn('One line to stdout!', output[1])
 
     def test_watch_stderr(self):
-        watch = Watch([os.path.join(DIR_FILES, 'stderr.sh')])
-        with Capturing() as output:
-            process = watch.run()
+        watch = Watch()
+        with Capturing(stream='stderr') as output:
+            process = watch.run(self.cmd_stderr)
         self.assertEqual(process.returncode, 1)
         self.assertEqual(len(output), 1)
         self.assertIn('STDERR', output[0])
         self.assertIn('One line to stderr!', output[0])
+
+    def test_watch_run_multiple(self):
+        watch = Watch()
+        watch.run(self.cmd_stdout)
+        watch.run(self.cmd_stderr)
+        self.assertEqual(len(watch.log_handler.buffer), 4)
