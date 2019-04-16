@@ -12,7 +12,8 @@ setup(
     name='jflib',
     author='Josef Friedrich',
     author_email='josef@friedrich.rocks',
-    description=('A collection of my Python library snippets. Maybe they are useful for someone else.'),
+    description=('A collection of my Python library snippets. Maybe they are '
+                 'useful for someone else.'),
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     license='MIT',

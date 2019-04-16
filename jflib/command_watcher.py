@@ -1,7 +1,11 @@
+"""
+Module to watch the execution of shell scripts. Both streams (`stdout` and
+`stderr`) are captured.
+"""
+
 from logging.handlers import BufferingHandler
 import logging
 import queue
-import re
 import shlex
 import subprocess
 import sys
@@ -24,8 +28,9 @@ logging.addLevelName(STDERR, 'STDERR')
 STDOUT = 5
 logging.addLevelName(STDOUT, 'STDOUT')
 
-LOGFMT='%(asctime)s_%(msecs)03d %(levelname)s %(message)s'
+LOGFMT = '%(asctime)s_%(msecs)03d %(levelname)s %(message)s'
 DATEFMT = '%Y%m%d_%H%M%S'
+
 
 class LoggingHandler(BufferingHandler):
 
@@ -122,12 +127,16 @@ class LoggingHandler(BufferingHandler):
 def _log_stdout(self, message, *args, **kws):
     # Yes, logger takes its '*args' as 'args'.
     self._log(STDOUT, message, args, **kws)
+
+
 logging.Logger.stdout = _log_stdout
 
 
 def _log_stderr(self, message, *args, **kws):
     # Yes, logger takes its '*args' as 'args'.
     self._log(STDERR, message, args, **kws)
+
+
 logging.Logger.stderr = _log_stderr
 
 
@@ -185,4 +194,3 @@ class Watch:
 
         process.wait()
         return process
-
