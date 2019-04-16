@@ -146,7 +146,13 @@ def setup_logging():
     formatter = logging.Formatter(fmt=LOGFMT, datefmt=DATEFMT)
     handler = LoggingHandler()
     handler.setFormatter(formatter)
-    logger.setLevel(0)
+    # Show all log messages: use 1 instead of 0: because:
+    # From the documentation:
+    # When a logger is created, the level is set to NOTSET (which causes all
+    # messages to be processed when the logger is the root logger, or
+    # delegation to the parent when the logger is a non-root logger). Note that
+    # the root logger is created with level WARNING.
+    logger.setLevel(1)
     logger.addHandler(handler)
     return (logger, handler)
 
@@ -156,6 +162,16 @@ class Watch:
     def __init__(self):
         self.log, self.log_handler = setup_logging()
         self.queue = queue.Queue()
+
+    @property
+    def stdout(self):
+        """Alias / shortcut for `self.log_handler.stdout`."""
+        return self.log_handler.stdout
+
+    @property
+    def stderr(self):
+        """Alias / shortcut for `self.log_handler.stderr`."""
+        return self.log_handler.stderr
 
     def _stdout_stderr_reader(self, pipe, stream):
         try:
@@ -172,6 +188,14 @@ class Watch:
         ).start()
 
     def run(self, args):
+        """Run a command.
+
+        :param mixed args: List or string. A command with command line
+          arguments. Like subprocess.Popen(args).
+
+        :return: Process object
+        :rtype: subprocess.CompletedProcess
+        """
         if isinstance(args, str):
             args = shlex.split(args)
         self.log.info('Run command: {}'.format(' '.join(args)))

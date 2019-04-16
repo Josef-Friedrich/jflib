@@ -126,7 +126,7 @@ class TestColorizedPrint(unittest.TestCase):
         )
 
 
-class TestCommandWatcher(unittest.TestCase):
+class TestClassWatch(unittest.TestCase):
 
     def setUp(self):
         self.cmd_stderr = os.path.join(DIR_FILES, 'stderr.sh')
@@ -155,3 +155,13 @@ class TestCommandWatcher(unittest.TestCase):
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
         self.assertEqual(len(watch.log_handler.buffer), 4)
+
+    def test_property_stdout(self):
+        watch = Watch()
+        watch.log.stdout('stdout')
+        self.assertEqual(watch.stdout, 'stdout')
+
+    def test_property_stderr(self):
+        watch = Watch()
+        watch.log.stderr('stderr')
+        self.assertEqual(watch.stderr, 'stderr')
