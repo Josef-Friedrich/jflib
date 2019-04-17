@@ -154,7 +154,7 @@ class TestClassWatch(unittest.TestCase):
         watch = Watch()
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
-        self.assertEqual(len(watch.log_handler.buffer), 4)
+        self.assertEqual(len(watch._log_handler.buffer), 4)
 
     def test_property_stdout(self):
         watch = Watch()

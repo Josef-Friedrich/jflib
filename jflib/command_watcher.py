@@ -1,6 +1,16 @@
 """
 Module to watch the execution of shell scripts. Both streams (`stdout` and
 `stderr`) are captured.
+
+.. code:: python
+
+    watch = Watch()
+    watch.log.critical(msg)
+    watch.log.error(msg)
+    watch.log.warning(msg)
+    watch.log.info(msg)
+    watch.log.debug(msg)
+    watch.run(['rsync', '-av', '/home', '/backup'])
 """
 
 from logging.handlers import BufferingHandler
@@ -158,28 +168,33 @@ def setup_logging():
 
 
 class Watch:
+    """Watch the execution of a command. Capture all output of a command.
+    provide and setup a logging facility.
+    """
 
     def __init__(self):
-        self.log, self.log_handler = setup_logging()
-        self.queue = queue.Queue()
+        self.log = None
+        """A ready to go logger."""
+        self.log, self._log_handler = setup_logging()
+        self._queue = queue.Queue()
 
     @property
     def stdout(self):
-        """Alias / shortcut for `self.log_handler.stdout`."""
-        return self.log_handler.stdout
+        """Alias / shortcut for `self._log_handler.stdout`."""
+        return self._log_handler.stdout
 
     @property
     def stderr(self):
-        """Alias / shortcut for `self.log_handler.stderr`."""
-        return self.log_handler.stderr
+        """Alias / shortcut for `self._log_handler.stderr`."""
+        return self._log_handler.stderr
 
     def _stdout_stderr_reader(self, pipe, stream):
         try:
             with pipe:
                 for line in iter(pipe.readline, b''):
-                    self.queue.put((line, stream))
+                    self._queue.put((line, stream))
         finally:
-            self.queue.put(None)
+            self._queue.put(None)
 
     def _start_thread(self, pipe, stream):
         threading.Thread(
@@ -206,7 +221,7 @@ class Watch:
         self._start_thread(process.stderr, 'stderr')
 
         for _ in range(2):
-            for line, stream in iter(self.queue.get, None):
+            for line, stream in iter(self._queue.get, None):
                 if line:
                     line = line.decode('utf-8').strip()
 
