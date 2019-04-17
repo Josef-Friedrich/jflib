@@ -83,7 +83,7 @@ class LoggingHandler(BufferingHandler):
         else:
             stream = sys.stdout
 
-        created = '{}_{:3d}'.format(
+        created = '{}_{:03d}'.format(
             time.strftime(DATEFMT, time.localtime(record.created)),
             int(record.msecs),
         )
