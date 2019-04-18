@@ -7,6 +7,8 @@ from email.header import Header
 def send_email(from_addr, to_addr, subject, body, smtp_login, smtp_password,
                smtp_server):
     """
+    Send a email.
+
     :param str from_addr: The from email address.
     :param str to_addr: The to email address.
     :param str subject: The email subject.
@@ -14,6 +16,8 @@ def send_email(from_addr, to_addr, subject, body, smtp_login, smtp_password,
     :param str smtp_login: The SMTP login name.
     :param str smtp_password: The SMTP password.
     :param str smtp_server: For example smtp.example.com:587
+
+    :return: Problems
     """
     message = MIMEText(body.encode('utf-8'), 'plain', 'utf-8')
 

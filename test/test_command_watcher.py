@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest import mock
 
 from jflib.capturing import Capturing
 from jflib.command_watcher import Watch, setup_logging
@@ -165,3 +166,30 @@ class TestClassWatch(unittest.TestCase):
         watch = Watch()
         watch.log.stderr('stderr')
         self.assertEqual(watch.stderr, 'stderr')
+
+    def test_method_send_email(self):
+        watch = Watch()
+        watch.log.info('info')
+        watch.log.error('error')
+        watch.log.debug('debug')
+
+        with mock.patch('smtplib.SMTP') as SMTP:
+            watch.send_email(
+                from_addr='from@example.com',
+                to_addr='to@example.com',
+                subject='Subject',
+                smtp_login='Login',
+                smtp_password='Password',
+                smtp_server='smtp.example.com:587'
+            )
+
+        SMTP.assert_called_with('smtp.example.com:587')
+        server = SMTP.return_value
+        server.login.assert_called_with('Login', 'Password')
+        call_args = server.sendmail.call_args[0]
+        self.assertEqual(call_args[0], 'from@example.com')
+        self.assertEqual(call_args[1], ['to@example.com'])
+        self.assertIn(
+            'From: from@example.com\nTo: to@example.com\n',
+            call_args[2]
+        )

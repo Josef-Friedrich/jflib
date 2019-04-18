@@ -24,6 +24,7 @@ import time
 import uuid
 
 from . import termcolor
+from .send_email import send_email
 
 # CRITICAL 50
 # ERROR 40
@@ -144,6 +145,13 @@ class LoggingHandler(BufferingHandler):
             messages.append(self.format(record))
         return '\n'.join(messages)
 
+    def send_email(self, from_addr, to_addr, subject, smtp_login,
+                   smtp_password, smtp_server):
+        return send_email(from_addr=from_addr, to_addr=to_addr,
+                          subject=subject, body=self.all_records,
+                          smtp_login=smtp_login, smtp_password=smtp_password,
+                          smtp_server=smtp_server)
+
 
 def _log_stdout(self, message, *args, **kws):
     # Yes, logger takes its '*args' as 'args'.
@@ -205,6 +213,25 @@ class Watch:
     def stderr(self):
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
+
+    def send_email(self, from_addr, to_addr, subject, smtp_login,
+                   smtp_password, smtp_server):
+        """
+        :param str from_addr: The from email address.
+        :param str to_addr: The to email address.
+        :param str subject: The email subject.
+        :param str smtp_login: The SMTP login name.
+        :param str smtp_password: The SMTP password.
+        :param str smtp_server: For example smtp.example.com:587
+        """
+        return self._log_handler.send_email(
+            from_addr=from_addr,
+            to_addr=to_addr,
+            subject=subject,
+            smtp_login=smtp_login,
+            smtp_password=smtp_password,
+            smtp_server=smtp_server,
+        )
 
     def _stdout_stderr_reader(self, pipe, stream):
         """
