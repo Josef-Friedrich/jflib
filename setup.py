@@ -26,6 +26,7 @@ setup(
     url='https://github.com/Josef-Friedrich/jflib',
     python_requires='>=3.6',
     long_description=read('README.md'),
+    long_description_content_type='text/markdown',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: MIT License',
