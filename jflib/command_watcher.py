@@ -110,6 +110,9 @@ class LoggingHandler(BufferingHandler):
         ), file=stream)
 
     def emit(self, record):
+        """
+        :param logging.LogRecord record: A record object.
+        """
         self.buffer.append(record)
         self._print(record)
         if self.shouldFlush(record):
@@ -117,6 +120,9 @@ class LoggingHandler(BufferingHandler):
 
     @property
     def stdout(self):
+        """
+        :param logging.LogRecord record: A record object.
+        """
         messages = []
         for record in self.buffer:
             if record.levelname == 'STDOUT':
