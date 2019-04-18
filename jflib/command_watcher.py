@@ -43,12 +43,17 @@ DATEFMT = '%Y%m%d_%H%M%S'
 
 
 class LoggingHandler(BufferingHandler):
+    """Store of all logging records in the memory. Print all records on emit.
+    """
 
     def __init__(self):
         BufferingHandler.__init__(self, capacity=1000000)
 
     @staticmethod
     def _print(record):
+        """
+        :param logging.LogRecord record: A record object.
+        """
         level = record.levelname
         # CRITICAL 50
         # ERROR 40
@@ -173,10 +178,17 @@ class Watch:
     """
 
     def __init__(self):
-        self.log = None
-        """A ready to go logger."""
-        self.log, self._log_handler = setup_logging()
+        log, log_handler = setup_logging()
+
+        self.log = log
+        """A ready to go and configured logger. An instance of
+        :py:class:`logging.Logger`."""
+
+        self._log_handler = log_handler
+        """An instance of :py:class:`LoggingHandler`."""
+
         self._queue = queue.Queue()
+        """An instance of :py:class:`queue.Queue`."""
 
     @property
     def stdout(self):
@@ -189,6 +201,10 @@ class Watch:
         return self._log_handler.stderr
 
     def _stdout_stderr_reader(self, pipe, stream):
+        """
+        :param object pipe: `process.stdout` or `process.stdout`
+        :param str stream: `stdout` or `stderr`
+        """
         try:
             with pipe:
                 for line in iter(pipe.readline, b''):
@@ -197,6 +213,10 @@ class Watch:
             self._queue.put(None)
 
     def _start_thread(self, pipe, stream):
+        """
+        :param object pipe: `process.stdout` or `process.stdout`
+        :param str stream: `stdout` or `stderr`
+        """
         threading.Thread(
             target=self._stdout_stderr_reader,
             args=[pipe, stream]
