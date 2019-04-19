@@ -104,6 +104,16 @@ class ObjectAttributeInterfaceLevel2:
         return self._reader.get(self._section, name)
 
 
+def load_readers_by_keyword(**kwargs):
+    readers = []
+    for keyword, value in kwargs.items():
+        if keyword == 'ini':
+            readers.append(Ini(path=value))
+        elif keyword == 'environ':
+            readers.append(Environ(prefix=value))
+    return readers
+
+
 class ConfigReader(object):
     """
     :param str config_file_path: The path of the configuration file.
