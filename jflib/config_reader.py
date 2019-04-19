@@ -1,9 +1,19 @@
 import os
 import configparser
+import re
 
 
 class ConfigValueError(Exception):
     """Configuration value can’t be found."""
+
+
+def validate_key(key):
+    if re.match(r'^[a-zA-Z0-9_]+$', key):
+        return True
+    raise ValueError(
+        'The key “{}” contains invalid characters (allowed: a-zA-Z0-9_).'
+        .format(key)
+    )
 
 
 class Environ(object):
@@ -67,6 +77,33 @@ class Argparse(object):
         """
 
 
+class Reader:
+
+    def __init__(self, *readers):
+        self.readers = readers
+
+    def get(self, section, key):
+        validate_key(section)
+        validate_key(key)
+        for reader in self.readers:
+            try:
+                return reader.get(section, key)
+            except ConfigValueError:
+                pass
+        raise ValueError('Configuration value could not be found '
+                         '(section “{}” key “{}”).'.format(section, key))
+
+
+class ObjectAttributeInterfaceLevel2:
+
+    def __init__(self, reader, section):
+        self._reader = reader
+        self._section = section
+
+    def __getattr__(self, name):
+        return self._reader.get(self._section, name)
+
+
 class ConfigReader(object):
     """
     :param str config_file_path: The path of the configuration file.
@@ -74,29 +111,8 @@ class ConfigReader(object):
         environment variables.
     """
 
-    def __init__(self, config_file=None, environ_prefix=None):
-        self._config_file = None
-        self._config_ini = None
-        if config_file:
-            self._config_file = os.path.expanduser(config_file)
-            if os.path.exists(self._config_file):
-                self._config_ini = configparser.ConfigParser()
-                self._config_ini.read(self._config_file)
-        self._environ_prefix = environ_prefix
+    def __init__(self, *readers):
+        self._reader = Reader(*readers)
 
-    def _envrion_key(self, section, key):
-        return '{}__{}__{}'.format(self._environ_prefix, section, key)
-
-    def get(self, section, key):
-        envrion_key = self._envrion_key(section, key)
-        if envrion_key in os.environ:
-            return os.environ[envrion_key]
-        elif hasattr(self, '_config_ini') and \
-                self._config_ini and \
-                section in self._config_ini and \
-                key in self._config_ini[section]:
-            return self._config_ini[section][key]
-
-        else:
-            raise ValueError('Configuration value could not be found '
-                             '(section “{}” key “{}”).'.format(section, key))
+    def __getattr__(self, name):
+        return ObjectAttributeInterfaceLevel2(self._reader, section=name)
