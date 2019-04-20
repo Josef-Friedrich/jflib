@@ -6,6 +6,7 @@ from jflib.config_reader import \
     Ini, \
     validate_key, \
     Reader, \
+    load_readers_by_keyword, \
     ConfigValueError
 
 # [Classical]
@@ -95,7 +96,7 @@ class TestClassIni(unittest.TestCase):
         )
 
 
-class TestReader(unittest.TestCase):
+class TestClassReader(unittest.TestCase):
 
     def test_ini_first(self):
         reader = Reader(Ini(INI_FILE), Environ(prefix='XXX'))
@@ -114,6 +115,14 @@ class TestReader(unittest.TestCase):
             'Configuration value could not be found (section “lol” key '
             '“lol”).',
         )
+
+
+class TestFunctionLoadReadersByKeyword(unittest.TestCase):
+
+    def test_order(self):
+        readers = load_readers_by_keyword(ini=INI_FILE, environ='XXX')
+        self.assertEqual(readers[0].__class__.__name__, 'Ini')
+        self.assertEqual(readers[1].__class__.__name__, 'Environ')
 
 
 class TestClassConfigReader(unittest.TestCase):
