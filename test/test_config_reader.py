@@ -119,10 +119,19 @@ class TestClassReader(unittest.TestCase):
 
 class TestFunctionLoadReadersByKeyword(unittest.TestCase):
 
-    def test_order(self):
+    def test_without_keywords_arguments(self):
+        with self.assertRaises(TypeError):
+            load_readers_by_keyword(INI_FILE, 'XXX')
+
+    def test_order_ini_environ(self):
         readers = load_readers_by_keyword(ini=INI_FILE, environ='XXX')
         self.assertEqual(readers[0].__class__.__name__, 'Ini')
         self.assertEqual(readers[1].__class__.__name__, 'Environ')
+
+    def test_order_environ_ini(self):
+        readers = load_readers_by_keyword(environ='XXX', ini=INI_FILE, )
+        self.assertEqual(readers[0].__class__.__name__, 'Environ')
+        self.assertEqual(readers[1].__class__.__name__, 'Ini')
 
 
 class TestClassConfigReader(unittest.TestCase):

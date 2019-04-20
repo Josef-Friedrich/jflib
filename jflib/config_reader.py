@@ -1,3 +1,30 @@
+"""
+A configuration reader which reads values stored in two levels of keys.
+The first level is named `section` and the second level `key`.
+
+INI file (`ini`):
+
+.. code:: ini
+
+    [section]
+    key = value
+
+Environment variables (`environ`):
+
+.. code:: shell
+
+    export prefix__section__key=value
+
+argparse arguments (`argparse`): (You have to specify a mapping)
+
+.. code::
+
+    mapping = {
+        'section.key': 'args_attribute'
+    }
+
+"""
+
 import os
 import configparser
 import re

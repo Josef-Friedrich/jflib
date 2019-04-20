@@ -21,6 +21,11 @@ Modules
 
 .. automodule:: jflib.command_watcher
 
+`config_reader`
+===============
+
+.. automodule:: jflib.config_reader
+
 `send_email`
 ============
 
