@@ -137,5 +137,5 @@ class TestFunctionLoadReadersByKeyword(unittest.TestCase):
 class TestClassConfigReader(unittest.TestCase):
 
     def test_valid(self):
-        config = ConfigReader(Ini(INI_FILE), Environ(prefix='XXX'))
+        config = ConfigReader(ini=INI_FILE, environ='XXX')
         self.assertEqual(config.Classical.name, 'Mozart')

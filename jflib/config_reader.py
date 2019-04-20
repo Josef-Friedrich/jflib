@@ -91,7 +91,8 @@ class Ini(object):
 class Argparse(object):
 
     def __init__(self, args, mapping):
-        pass
+        self._args = args
+        self._mapping = mapping
 
     def get(self, section, key):
         """
@@ -102,6 +103,7 @@ class Argparse(object):
 
         :return: The configuration value stored under a section and a key.
         """
+        return self.args['{}.{}'.format(section, key)]
 
 
 class Reader:
@@ -142,13 +144,17 @@ def load_readers_by_keyword(**kwargs):
 
 
 class ConfigReader(object):
-    """
-    :param str config_file_path: The path of the configuration file.
-    :param str environ_prefix: A environment variable prefix for  all
-        environment variables.
-    """
+    """Available readers: `ini`, `environ`, `argparse`
 
-    def __init__(self, *readers):
+    Have to be specified as keyword arguments. The order of the keywords is
+    important. The last keyword overwrites to the other.
+
+    :param str ini: The path of the INI file.
+    :param str environ: The prefix of the environment variables.
+    :param str argparse: The parsed `argparse` object.
+    """
+    def __init__(self, **kwargs):
+        readers = load_readers_by_keyword(**kwargs)
         self._reader = Reader(*readers)
 
     def __getattr__(self, name):
