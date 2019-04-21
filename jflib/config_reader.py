@@ -43,7 +43,11 @@ def validate_key(key):
     )
 
 
-class Environ(object):
+class ReaderBase:
+    """Base class for all readers"""
+
+
+class Environ(ReaderBase):
 
     def __init__(self, prefix=None):
         self._prefix = prefix
@@ -67,7 +71,7 @@ class Environ(object):
                                .format(key))
 
 
-class Ini(object):
+class Ini(ReaderBase):
 
     def __init__(self, path):
         self._config = configparser.ConfigParser()
@@ -88,7 +92,7 @@ class Ini(object):
                                                                      key))
 
 
-class Argparse(object):
+class Argparse(ReaderBase):
 
     def __init__(self, args, mapping):
         self._args = args
@@ -111,9 +115,13 @@ class Reader:
     def __init__(self, *readers):
         self.readers = readers
 
+    @staticmethod
+    def _validate_key(key):
+        return validate_key(key)
+
     def get(self, section, key):
-        validate_key(section)
-        validate_key(key)
+        self._validate_key(section)
+        self._validate_key(key)
         for reader in self.readers:
             try:
                 return reader.get(section, key)
