@@ -1,5 +1,6 @@
 import os
 import unittest
+import argparse
 from jflib.config_reader import \
     ConfigReader, \
     Environ, \
@@ -7,6 +8,7 @@ from jflib.config_reader import \
     validate_key, \
     Reader, \
     load_readers_by_keyword, \
+    Argparse, \
     ConfigValueError
 
 # [Classical]
@@ -18,6 +20,12 @@ INI_FILE = os.path.join(os.path.dirname(__file__), 'files', 'config.ini')
 
 os.environ['XXX__Classical__name'] = 'Mozart'
 os.environ['XXX__Baroque__name'] = 'Bach'
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--classical-name')
+parser.add_argument('--baroque-name')
+args = parser.parse_args(['--baroque-name', 'Bach', '--classical-name',
+                          'Mozart'])
 
 
 class TestFunctionValidateKey(unittest.TestCase):
@@ -94,6 +102,19 @@ class TestClassIni(unittest.TestCase):
             'Configuration value could not be found (section “lol” key '
             '“lol”).',
         )
+
+
+class TestClassArgparse(unittest.TestCase):
+
+    def test_method_get(self):
+        argparse = Argparse(
+            args=args,
+            mapping={
+                'Classical.name': 'classical_name',
+                'Baroque.name': 'baroque_name',
+            })
+        self.assertEqual(argparse.get('Classical', 'name'), 'Mozart')
+        self.assertEqual(argparse.get('Baroque', 'name'), 'Bach')
 
 
 class TestClassReader(unittest.TestCase):

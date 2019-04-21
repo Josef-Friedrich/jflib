@@ -103,7 +103,7 @@ class Argparse(object):
 
         :return: The configuration value stored under a section and a key.
         """
-        return self.args['{}.{}'.format(section, key)]
+        return getattr(self._args, self._mapping['{}.{}'.format(section, key)])
 
 
 class Reader:
