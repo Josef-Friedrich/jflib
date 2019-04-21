@@ -191,12 +191,14 @@ class Watch:
     provide and setup a logging facility.
     """
 
-    def __init__(self):
+    def __init__(self, config_reader=None):
         log, log_handler = setup_logging()
 
         self.log = log
         """A ready to go and configured logger. An instance of
         :py:class:`logging.Logger`."""
+
+        self._config_reader = config_reader
 
         self._log_handler = log_handler
         """An instance of :py:class:`LoggingHandler`."""
@@ -214,8 +216,8 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def send_email(self, from_addr, to_addr, subject, smtp_login,
-                   smtp_password, smtp_server):
+    def send_email(self, from_addr=None, to_addr=None, subject=None,
+                   smtp_login=None, smtp_password=None, smtp_server=None):
         """
         :param str from_addr: The from email address.
         :param str to_addr: The to email address.
@@ -224,13 +226,14 @@ class Watch:
         :param str smtp_password: The SMTP password.
         :param str smtp_server: For example smtp.example.com:587
         """
+        conf = self._config_reader
         return self._log_handler.send_email(
-            from_addr=from_addr,
-            to_addr=to_addr,
+            from_addr=from_addr if from_addr else conf.email.from_addr,
+            to_addr=to_addr if to_addr else conf.email.to_addr,
             subject=subject,
-            smtp_login=smtp_login,
-            smtp_password=smtp_password,
-            smtp_server=smtp_server,
+            smtp_login=smtp_login if smtp_login else conf.email.smtp_login,
+            smtp_password=smtp_password if smtp_password else conf.email.smtp_password,  # noqa: E501
+            smtp_server=smtp_server if smtp_server else conf.email.smtp_server,
         )
 
     def _stdout_stderr_reader(self, pipe, stream):
