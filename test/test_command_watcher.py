@@ -140,9 +140,10 @@ class TestClassWatch(unittest.TestCase):
         with Capturing() as output:
             process = watch.run(self.cmd_stdout)
         self.assertEqual(process.returncode, 0)
-        self.assertEqual(len(output), 2)
+        self.assertEqual(len(output), 3)
         self.assertIn('STDOUT', output[1])
         self.assertIn('One line to stdout!', output[1])
+        self.assertIn('Execution time: ', output[2])
 
     def test_watch_stderr(self):
         watch = Watch()
@@ -157,7 +158,7 @@ class TestClassWatch(unittest.TestCase):
         watch = Watch()
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
-        self.assertEqual(len(watch._log_handler.buffer), 4)
+        self.assertEqual(len(watch._log_handler.buffer), 6)
 
     def test_property_stdout(self):
         watch = Watch()

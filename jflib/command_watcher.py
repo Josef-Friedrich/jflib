@@ -43,6 +43,30 @@ LOGFMT = '%(asctime)s_%(msecs)03d %(levelname)s %(message)s'
 DATEFMT = '%Y%m%d_%H%M%S'
 
 
+class Timer:
+    """Measure the execution time of a command run."""
+
+    def __init__(self):
+        self.stop = 0
+        """"The time when the timer stops. (UNIX timestamp)"""
+
+        self.start = time.time()
+        """"The start time. (UNIX timestamp)"""
+
+        self.interval = 0
+        """The time interval between start and stop."""
+
+    def result(self):
+        """
+        Measure the time intervale
+
+        :return: A formatted string displaying the result.
+        :rtype: str"""
+        self.stop = time.time()
+        self.interval = self.stop - self.start
+        return '{:.3f}s'.format(self.interval)
+
+
 class LoggingHandler(BufferingHandler):
     """Store of all logging records in the memory. Print all records on emit.
     """
@@ -270,6 +294,7 @@ class Watch:
         if isinstance(args, str):
             args = shlex.split(args)
         self.log.info('Run command: {}'.format(' '.join(args)))
+        timer = Timer()
         process = subprocess.Popen(args, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, bufsize=1)
 
@@ -288,4 +313,5 @@ class Watch:
                         self.log.stdout(line)
 
         process.wait()
+        self.log.info('Execution time: {}'.format(timer.result()))
         return process
