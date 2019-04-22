@@ -203,12 +203,7 @@ class TestClassWatch(unittest.TestCase):
 
         with mock.patch('smtplib.SMTP') as SMTP:
             watch.send_email(
-                from_addr='from@example.com',
-                to_addr='to@example.com',
                 subject='Subject',
-                smtp_login='Login',
-                smtp_password='Password',
-                smtp_server='smtp.example.com:587'
             )
 
         SMTP.assert_called_with('smtp.example.com:587')
