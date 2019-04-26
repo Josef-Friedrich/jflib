@@ -4,6 +4,7 @@ from jflib import \
     argparser_to_readme, \
     Capturing, \
     colored, \
+    ConfigReader, \
     cprint, \
     send_email, \
     Watch
@@ -19,6 +20,9 @@ class TestImports(unittest.TestCase):
 
     def test_colored(self):
         self.assertTrue(callable(colored))
+
+    def test_config_reader(self):
+        self.assertTrue(callable(ConfigReader))
 
     def test_cprint(self):
         self.assertTrue(callable(cprint))
