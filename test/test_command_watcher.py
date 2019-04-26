@@ -3,7 +3,7 @@ import unittest
 from unittest import mock
 
 from jflib.capturing import Capturing
-from jflib.command_watcher import Watch, setup_logging
+from jflib.command_watcher import Watch, setup_logging, CommandWatcherError
 from jflib.config_reader import ConfigReader
 
 DIR_FILES = os.path.join(os.path.dirname(__file__), 'files')
@@ -146,7 +146,7 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('Execution time: ', output[2])
 
     def test_watch_stderr(self):
-        watch = Watch()
+        watch = Watch(raise_exceptions=False)
         with Capturing(stream='stderr') as output:
             process = watch.run(self.cmd_stderr)
         self.assertEqual(process.returncode, 1)
@@ -155,7 +155,7 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('One line to stderr!', output[0])
 
     def test_watch_run_multiple(self):
-        watch = Watch()
+        watch = Watch(raise_exceptions=False)
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
         self.assertEqual(len(watch._log_handler.buffer), 6)
@@ -243,3 +243,8 @@ class TestClassWatch(unittest.TestCase):
             subject='command_watcher: ls; ls -l',
             to_addr='to@example.com'
         )
+
+    def test_exception(self):
+        watch = Watch()
+        with self.assertRaises(CommandWatcherError):
+            watch.run(self.cmd_stderr)

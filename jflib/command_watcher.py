@@ -43,6 +43,10 @@ LOGFMT = '%(asctime)s_%(msecs)03d %(levelname)s %(message)s'
 DATEFMT = '%Y%m%d_%H%M%S'
 
 
+class CommandWatcherError(Exception):
+    """Exception raiseed by this module."""
+
+
 class Timer:
     """Measure the execution time of a command run."""
 
@@ -215,7 +219,7 @@ class Watch:
     provide and setup a logging facility.
     """
 
-    def __init__(self, config_reader=None):
+    def __init__(self, config_reader=None, raise_exceptions=True):
         log, log_handler = setup_logging()
 
         self.log = log
@@ -234,6 +238,9 @@ class Watch:
         """A list of completed processes
         :py:class:`subprocess.CompletedProcess`. Everytime you use the method
         `run()` the process object is appened in the list."""
+
+        self._raise_exceptions = raise_exceptions
+        """Raise exceptions"""
 
     @property
     def stdout(self):
@@ -329,5 +336,9 @@ class Watch:
         process.wait()
         self._completed_processes.append(process)
         self.log.info('Execution time: {}'.format(timer.result()))
+        if self._raise_exceptions and process.returncode != 0:
+            raise CommandWatcherError(
+                'The command {} exists with an non-zero return code.'
+                .format(' '.join(args))
+            )
         return process
-
