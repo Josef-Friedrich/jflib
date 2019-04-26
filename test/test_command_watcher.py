@@ -135,6 +135,10 @@ class TestClassWatch(unittest.TestCase):
         self.cmd_stderr = os.path.join(DIR_FILES, 'stderr.sh')
         self.cmd_stdout = os.path.join(DIR_FILES, 'stdout.sh')
 
+    def test_argument_config_file(self):
+        watch = Watch(config_file=INI_FILE)
+        self.assertEqual(watch._config_reader.email.to_addr, 'to@example.com')
+
     def test_watch_stdout(self):
         watch = Watch()
         with Capturing() as output:

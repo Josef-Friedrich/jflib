@@ -24,6 +24,7 @@ import time
 import uuid
 
 from . import termcolor
+from .config_reader import ConfigReader
 from .send_email import send_email
 
 # CRITICAL 50
@@ -219,7 +220,8 @@ class Watch:
     provide and setup a logging facility.
     """
 
-    def __init__(self, config_reader=None, raise_exceptions=True):
+    def __init__(self, config_file=None, config_reader=None,
+                 raise_exceptions=True):
         log, log_handler = setup_logging()
 
         self.log = log
@@ -227,6 +229,8 @@ class Watch:
         :py:class:`logging.Logger`."""
 
         self._config_reader = config_reader
+        if not config_reader and config_file:
+            self._config_reader = ConfigReader(ini=config_file)
 
         self._log_handler = log_handler
         """An instance of :py:class:`LoggingHandler`."""
