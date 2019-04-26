@@ -303,11 +303,19 @@ class Watch:
             args=[pipe, stream]
         ).start()
 
-    def run(self, args):
+    def run(self, args, **kwargs):
         """Run a command.
+
+        You can use all keyword arguments from
+        :py:class:`subprocess.Popen` except `bufsize`, `stderr`, `stdout`.
 
         :param mixed args: List or string. A command with command line
           arguments. Like subprocess.Popen(args).
+        :param bool shell: If true, the command will be executed through the
+          shell.
+        :param str cwd: Sets the current directory before the child is
+          executed.
+        :param dict env: Defines the environment variables for the new process.
 
         :return: Process object
         :rtype: subprocess.CompletedProcess
@@ -317,7 +325,7 @@ class Watch:
         self.log.info('Run command: {}'.format(' '.join(args)))
         timer = Timer()
         process = subprocess.Popen(args, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, bufsize=1)
+                                   stderr=subprocess.PIPE, bufsize=1, **kwargs)
 
         self._start_thread(process.stdout, 'stdout')
         self._start_thread(process.stderr, 'stderr')

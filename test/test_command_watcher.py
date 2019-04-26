@@ -160,6 +160,22 @@ class TestClassWatch(unittest.TestCase):
         watch.run(self.cmd_stderr)
         self.assertEqual(len(watch._log_handler.buffer), 6)
 
+    def test_method_run_kwargs(self):
+        watch = Watch()
+        with mock.patch('subprocess.Popen') as Popen:
+            process = Popen.return_value
+            process.stdout = b''
+            process.stderr = b''
+            process.returncode = 0
+            watch.run('ls', cwd='/')
+        Popen.assert_called_with(['ls'], bufsize=1, cwd='/', stderr=-1,
+                                 stdout=-1)
+
+    def test_method_run_kwargs_exception(self):
+        watch = Watch()
+        with self.assertRaises(TypeError):
+            watch.run('ls', xxx=False)
+
     def test_property_stdout(self):
         watch = Watch()
         watch.log.stdout('stdout')
