@@ -170,6 +170,14 @@ class TestClassWatch(unittest.TestCase):
         watch.log.stderr('stderr')
         self.assertEqual(watch.stderr, 'stderr')
 
+    def test_property_completed_processes(self):
+        watch = Watch()
+        self.assertEqual(watch._completed_processes, [])
+        watch.run(['ls'])
+        watch.run(['ls', '-l'])
+        watch.run(['ls', '-la'])
+        self.assertEqual(len(watch._completed_processes), 3)
+
     def test_method_send_email(self):
         watch = Watch()
         watch.log.info('info')

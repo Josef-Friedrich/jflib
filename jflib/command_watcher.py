@@ -230,6 +230,11 @@ class Watch:
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""
 
+        self._completed_processes = []
+        """A list of completed processes
+        :py:class:`subprocess.CompletedProcess`. Everytime you use the method
+        `run()` the process object is appened in the list."""
+
     @property
     def stdout(self):
         """Alias / shortcut for `self._log_handler.stdout`."""
@@ -313,5 +318,6 @@ class Watch:
                         self.log.stdout(line)
 
         process.wait()
+        self._completed_processes.append(process)
         self.log.info('Execution time: {}'.format(timer.result()))
         return process
