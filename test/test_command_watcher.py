@@ -225,3 +225,21 @@ class TestClassWatch(unittest.TestCase):
             'From: from@example.com\nTo: to@example.com\n',
             call_args[2]
         )
+
+    def test_method_send_email_subject(self):
+        config_reader = ConfigReader(ini=INI_FILE)
+        watch = Watch(config_reader=config_reader)
+        send_email = mock.Mock()
+        watch._log_handler.send_email = send_email
+        watch.run('ls')
+        watch.run(['ls', '-l'])
+
+        watch.send_email()
+        send_email.assert_called_with(
+            from_addr='from@example.com',
+            smtp_login='Login',
+            smtp_password='Password',
+            smtp_server='smtp.example.com:587',
+            subject='command_watcher: ls; ls -l',
+            to_addr='to@example.com'
+        )

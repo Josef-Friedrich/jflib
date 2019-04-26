@@ -245,6 +245,13 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
+    def _build_email_subject(self):
+        if self._completed_processes:
+            commands = []
+            for process in self._completed_processes:
+                commands.append(' '.join(process.args))
+        return 'command_watcher: {}'.format('; '.join(commands))
+
     def send_email(self, from_addr=None, to_addr=None, subject=None,
                    smtp_login=None, smtp_password=None, smtp_server=None):
         """
@@ -255,6 +262,8 @@ class Watch:
         :param str smtp_password: The SMTP password.
         :param str smtp_server: For example smtp.example.com:587
         """
+        if not subject:
+            subject = self._build_email_subject()
         conf = self._config_reader
         return self._log_handler.send_email(
             from_addr=from_addr if from_addr else conf.email.from_addr,
@@ -321,3 +330,4 @@ class Watch:
         self._completed_processes.append(process)
         self.log.info('Execution time: {}'.format(timer.result()))
         return process
+
