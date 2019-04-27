@@ -80,8 +80,8 @@ class Argparse(ReaderBase):
         """
         Get a configuration value stored under a section and a key.
 
-        :param string section: Name of the section.
-        :param string key: Name of the key.
+        :param str section: Name of the section.
+        :param str key: Name of the key.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -109,8 +109,8 @@ class Dictionary(ReaderBase):
         """
         Get a configuration value stored under a section and a key.
 
-        :param string section: Name of the section.
-        :param string key: Name of the key.
+        :param str section: Name of the section.
+        :param str key: Name of the key.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -132,8 +132,8 @@ class Environ(ReaderBase):
         """
         Get a configuration value stored under a section and a key.
 
-        :param string section: Name of the section.
-        :param string key: Name of the key.
+        :param str section: Name of the section.
+        :param str key: Name of the key.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -156,8 +156,8 @@ class Ini(ReaderBase):
         """
         Get a configuration value stored under a section and a key.
 
-        :param string section: Name of the section.
-        :param string key: Name of the key.
+        :param str section: Name of the section.
+        :param str key: Name of the key.
         """
         try:
             return self._config[section][key]
