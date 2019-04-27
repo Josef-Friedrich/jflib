@@ -206,4 +206,22 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(self.config.types.code, 'print(\'lol\')')
 
     def test_invalid_code(self):
-        self.assertEqual(self.config.types.invalid_code, 'print(\'lol)')
+        self.assertEqual(self.config.types.invalid_code, 'print(\'lol)\'')
+
+    def test_bool(self):
+        self.assertEqual(self.config.types.bool, True)
+
+    def test_empty_string(self):
+        self.assertEqual(self.config.types.empty_str, '')
+
+    def test_none(self):
+        self.assertEqual(self.config.types.none, None)
+
+    def test_zero(self):
+        self.assertEqual(self.config.types.zero, 0)
+
+    def test_false(self):
+        self.assertEqual(self.config.types.false, False)
+
+    def test_false_str(self):
+        self.assertEqual(self.config.types.false_str, 'false')
