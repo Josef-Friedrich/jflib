@@ -97,6 +97,11 @@ class Ini(ReaderBase):
 
 
 class Argparse(ReaderBase):
+    """
+    :param obj args: The parsed `argparse` object.
+    :param dict mapping: A dictionary like this one: `{'section.key': 'dest'}`.
+      `dest` are the propertiy name of the `args` object.
+    """
 
     def __init__(self, args, mapping):
         self._args = args
@@ -172,20 +177,39 @@ class Value:
 
 
 def load_readers_by_keyword(**kwargs):
+    """Available readers: `ini`, `environ`, `argparse`
+
+    The arguments of this class have to be specified as keyword arguments.
+    Each keyword stands for a configuration reader.
+    The order of the keywords is important. The last keyword, more
+    specifically the last reader, overwrites the previous ones.
+
+    :param str ini: The path of the INI file.
+    :param str environ: The prefix of the environment variables.
+    :param str argparse: A tuple `(args, mapping)`.
+      `args`: The parsed `argparse` object.
+      `mapping`: A dictionary like this one: `{'section.key': 'dest'}`. `dest`
+      are the propertiy name of the `args` object.
+    """
     readers = []
     for keyword, value in kwargs.items():
         if keyword == 'ini':
             readers.append(Ini(path=value))
         elif keyword == 'environ':
             readers.append(Environ(prefix=value))
+        elif keyword == 'argparse':
+            readers.append(Argparse(args=value[0], mapping=value[1]))
+
     return readers
 
 
 class ConfigReader(object):
     """Available readers: `ini`, `environ`, `argparse`
 
-    Have to be specified as keyword arguments. The order of the keywords is
-    important. The last keyword overwrites to the other.
+    The arguments of this class have to be specified as keyword arguments.
+    Each keyword stands for a configuration reader.
+    The order of the keywords is important. The last keyword, more
+    specifically the last reader, overwrites the previous ones.
 
     :param str ini: The path of the INI file.
     :param str environ: The prefix of the environment variables.
