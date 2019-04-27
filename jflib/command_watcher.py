@@ -20,6 +20,7 @@ import shlex
 import subprocess
 import sys
 import threading
+import socket
 import time
 import uuid
 
@@ -226,6 +227,7 @@ class Watch:
         self.log = log
         """A ready to go and configured logger. An instance of
         :py:class:`logging.Logger`."""
+        self.log.info('Hostname: {}'.format(socket.gethostname()))
 
         self._conf = ConfigReader(
             ini=config_file,

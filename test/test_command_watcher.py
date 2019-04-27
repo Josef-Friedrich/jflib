@@ -162,7 +162,8 @@ class TestClassWatch(unittest.TestCase):
         watch = Watch(config_file=CONF, raise_exceptions=False)
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
-        self.assertEqual(len(watch._log_handler.buffer), 6)
+        self.assertEqual(len(watch._log_handler.buffer), 7)
+        self.assertIn('Hostname: ', watch._log_handler.all_records)
 
     def test_method_run_kwargs(self):
         watch = Watch(config_file=CONF)
