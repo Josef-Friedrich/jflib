@@ -118,6 +118,21 @@ class TestClassArgparse(unittest.TestCase):
         self.assertEqual(argparse.get('Classical', 'name'), 'Mozart')
         self.assertEqual(argparse.get('Baroque', 'name'), 'Bach')
 
+    def test_exception(self):
+        argparse = Argparse(
+            args=args,
+            mapping={
+                'Classical.name': 'classical_name',
+                'Baroque.name': 'baroque_name',
+                'Romantic.name': 'romantic_name',
+
+            })
+        with self.assertRaises(ConfigValueError):
+            argparse.get('Romantic', 'name')
+
+        with self.assertRaises(ConfigValueError):
+            argparse.get('Modern', 'name')
+
 
 class TestClassReader(unittest.TestCase):
 

@@ -43,8 +43,14 @@ def validate_key(key):
     )
 
 
+# Reader classes ##############################################################
+
+
 class ReaderBase:
     """Base class for all readers"""
+
+    def _exception(self, msg):
+        raise ConfigValueError(msg)
 
 
 class Environ(ReaderBase):
@@ -57,7 +63,7 @@ class Environ(ReaderBase):
         Get a configuration value stored under a section and a key.
 
         :param string section: Name of the section.
-        :param string key: Namve of the key.
+        :param string key: Name of the key.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -67,8 +73,7 @@ class Environ(ReaderBase):
             key = '{}__{}'.format(section, key)
         if key in os.environ:
             return os.environ[key]
-        raise ConfigValueError('Environment variable not found: {}'
-                               .format(key))
+        self._exception('Environment variable not found: {}'.format(key))
 
 
 class Ini(ReaderBase):
@@ -82,14 +87,13 @@ class Ini(ReaderBase):
         Get a configuration value stored under a section and a key.
 
         :param string section: Name of the section.
-        :param string key: Namve of the key.
+        :param string key: Name of the key.
         """
         try:
             return self._config[section][key]
         except KeyError:
-            raise ConfigValueError('Configuration value could not be found '
-                                   '(section “{}” key “{}”).'.format(section,
-                                                                     key))
+            self._exception('Configuration value could not be found '
+                            '(section “{}” key “{}”).'.format(section, key))
 
 
 class Argparse(ReaderBase):
@@ -103,11 +107,25 @@ class Argparse(ReaderBase):
         Get a configuration value stored under a section and a key.
 
         :param string section: Name of the section.
-        :param string key: Namve of the key.
+        :param string key: Name of the key.
 
         :return: The configuration value stored under a section and a key.
         """
-        return getattr(self._args, self._mapping['{}.{}'.format(section, key)])
+        mapping_key = '{}.{}'.format(section, key)
+        try:
+            argparse_dest = self._mapping[mapping_key]
+        except KeyError:
+            msg = 'Mapping key “{}” for an argparse destination not found.'
+            self._exception(msg.format(mapping_key))
+        try:
+            return getattr(self._args, argparse_dest)
+        except AttributeError:
+            self._exception('Configuration value could not be found by '
+                            'Argparse (section “{}” key “{}”).'
+                            .format(section, key))
+
+
+# Common code #################################################################
 
 
 class Reader:
