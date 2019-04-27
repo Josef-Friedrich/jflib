@@ -227,7 +227,10 @@ class Watch:
         """A ready to go and configured logger. An instance of
         :py:class:`logging.Logger`."""
 
-        self._conf = ConfigReader(ini=config_file)
+        self._conf = ConfigReader(
+            ini=config_file,
+            dictionary={'email': {'subject_prefix': 'command_watcher'}}
+        )
 
         self._log_handler = log_handler
         """An instance of :py:class:`LoggingHandler`."""
@@ -258,7 +261,10 @@ class Watch:
             commands = []
             for process in self._completed_processes:
                 commands.append(' '.join(process.args))
-        return 'command_watcher: {}'.format('; '.join(commands))
+        return '{}: {}'.format(
+            self._conf.email.subject_prefix,
+            '; '.join(commands),
+        )
 
     def send_email(self, subject=None, to_addr=None):
         """

@@ -7,7 +7,7 @@ from jflib.command_watcher import Watch, setup_logging, CommandWatcherError
 
 
 DIR_FILES = os.path.join(os.path.dirname(__file__), 'files')
-INI_FILE = os.path.join(DIR_FILES, 'email.ini')
+CONF = os.path.join(DIR_FILES, 'command_watcher', 'conf.ini')
 
 
 class TestLogging(unittest.TestCase):
@@ -136,11 +136,11 @@ class TestClassWatch(unittest.TestCase):
         self.cmd_stdout = os.path.join(DIR_FILES, 'stdout.sh')
 
     def test_argument_config_file(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         self.assertEqual(watch._conf.email.to_addr, 'to@example.com')
 
     def test_watch_stdout(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         with Capturing() as output:
             process = watch.run(self.cmd_stdout)
         self.assertEqual(process.returncode, 0)
@@ -150,7 +150,7 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('Execution time: ', output[2])
 
     def test_watch_stderr(self):
-        watch = Watch(config_file=INI_FILE, raise_exceptions=False)
+        watch = Watch(config_file=CONF, raise_exceptions=False)
         with Capturing(stream='stderr') as output:
             process = watch.run(self.cmd_stderr)
         self.assertEqual(process.returncode, 1)
@@ -159,13 +159,13 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('One line to stderr!', output[0])
 
     def test_watch_run_multiple(self):
-        watch = Watch(config_file=INI_FILE, raise_exceptions=False)
+        watch = Watch(config_file=CONF, raise_exceptions=False)
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
         self.assertEqual(len(watch._log_handler.buffer), 6)
 
     def test_method_run_kwargs(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         with mock.patch('subprocess.Popen') as Popen:
             process = Popen.return_value
             process.stdout = b''
@@ -176,22 +176,22 @@ class TestClassWatch(unittest.TestCase):
                                  stdout=-1)
 
     def test_method_run_kwargs_exception(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         with self.assertRaises(TypeError):
             watch.run('ls', xxx=False)
 
     def test_property_stdout(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         watch.log.stdout('stdout')
         self.assertEqual(watch.stdout, 'stdout')
 
     def test_property_stderr(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         watch.log.stderr('stderr')
         self.assertEqual(watch.stderr, 'stderr')
 
     def test_property_completed_processes(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         self.assertEqual(watch._completed_processes, [])
         watch.run(['ls'])
         watch.run(['ls', '-l'])
@@ -199,7 +199,7 @@ class TestClassWatch(unittest.TestCase):
         self.assertEqual(len(watch._completed_processes), 3)
 
     def test_method_send_email_with_config_reader(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         watch.log.info('info')
 
         with mock.patch('smtplib.SMTP') as SMTP:
@@ -220,7 +220,7 @@ class TestClassWatch(unittest.TestCase):
         )
 
     def test_method_send_email_subject(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         send_email = mock.Mock()
         watch._log_handler.send_email = send_email
         watch.run('ls')
@@ -237,6 +237,6 @@ class TestClassWatch(unittest.TestCase):
         )
 
     def test_exception(self):
-        watch = Watch(config_file=INI_FILE)
+        watch = Watch(config_file=CONF)
         with self.assertRaises(CommandWatcherError):
             watch.run(self.cmd_stderr)
