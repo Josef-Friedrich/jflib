@@ -36,6 +36,11 @@ Modules
 
 .. automodule:: jflib.termcolor
 
+`utils`
+=======
+
+.. automodule:: jflib.utils
+
 ******************
 Indices and tables
 ******************
