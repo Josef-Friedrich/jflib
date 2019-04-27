@@ -53,6 +53,40 @@ class ReaderBase:
         raise ConfigValueError(msg)
 
 
+class Argparse(ReaderBase):
+    """
+    :param obj args: The parsed `argparse` object.
+    :param dict mapping: A dictionary like this one: `{'section.key': 'dest'}`.
+      `dest` are the propertiy name of the `args` object.
+    """
+
+    def __init__(self, args, mapping):
+        self._args = args
+        self._mapping = mapping
+
+    def get(self, section, key):
+        """
+        Get a configuration value stored under a section and a key.
+
+        :param string section: Name of the section.
+        :param string key: Name of the key.
+
+        :return: The configuration value stored under a section and a key.
+        """
+        mapping_key = '{}.{}'.format(section, key)
+        try:
+            argparse_dest = self._mapping[mapping_key]
+        except KeyError:
+            msg = 'Mapping key “{}” for an argparse destination not found.'
+            self._exception(msg.format(mapping_key))
+        try:
+            return getattr(self._args, argparse_dest)
+        except AttributeError:
+            self._exception('Configuration value could not be found by '
+                            'Argparse (section “{}” key “{}”).'
+                            .format(section, key))
+
+
 class Environ(ReaderBase):
 
     def __init__(self, prefix=None):
@@ -94,40 +128,6 @@ class Ini(ReaderBase):
         except KeyError:
             self._exception('Configuration value could not be found '
                             '(section “{}” key “{}”).'.format(section, key))
-
-
-class Argparse(ReaderBase):
-    """
-    :param obj args: The parsed `argparse` object.
-    :param dict mapping: A dictionary like this one: `{'section.key': 'dest'}`.
-      `dest` are the propertiy name of the `args` object.
-    """
-
-    def __init__(self, args, mapping):
-        self._args = args
-        self._mapping = mapping
-
-    def get(self, section, key):
-        """
-        Get a configuration value stored under a section and a key.
-
-        :param string section: Name of the section.
-        :param string key: Name of the key.
-
-        :return: The configuration value stored under a section and a key.
-        """
-        mapping_key = '{}.{}'.format(section, key)
-        try:
-            argparse_dest = self._mapping[mapping_key]
-        except KeyError:
-            msg = 'Mapping key “{}” for an argparse destination not found.'
-            self._exception(msg.format(mapping_key))
-        try:
-            return getattr(self._args, argparse_dest)
-        except AttributeError:
-            self._exception('Configuration value could not be found by '
-                            'Argparse (section “{}” key “{}”).'
-                            .format(section, key))
 
 
 # Common code #################################################################
@@ -177,19 +177,19 @@ class Value:
 
 
 def load_readers_by_keyword(**kwargs):
-    """Available readers: `ini`, `environ`, `argparse`
+    """Available readers: `argparse`, `environ`, `ini`.
 
     The arguments of this class have to be specified as keyword arguments.
-    Each keyword stands for a configuration reader.
+    Each keyword stands for a configuration reader class.
     The order of the keywords is important. The last keyword, more
-    specifically the last reader, overwrites the previous ones.
+    specifically the last reader class, overwrites the previous ones.
 
-    :param str ini: The path of the INI file.
-    :param str environ: The prefix of the environment variables.
-    :param str argparse: A tuple `(args, mapping)`.
+    :param tuple argparse: A tuple `(args, mapping)`.
       `args`: The parsed `argparse` object.
       `mapping`: A dictionary like this one: `{'section.key': 'dest'}`. `dest`
       are the propertiy name of the `args` object.
+    :param str environ: The prefix of the environment variables.
+    :param str ini: The path of the INI file.
     """
     readers = []
     for keyword, value in kwargs.items():
@@ -204,16 +204,19 @@ def load_readers_by_keyword(**kwargs):
 
 
 class ConfigReader(object):
-    """Available readers: `ini`, `environ`, `argparse`
+    """Available readers: `argparse`, `environ`, `ini`.
 
     The arguments of this class have to be specified as keyword arguments.
-    Each keyword stands for a configuration reader.
+    Each keyword stands for a configuration reader class.
     The order of the keywords is important. The last keyword, more
-    specifically the last reader, overwrites the previous ones.
+    specifically the last reader class, overwrites the previous ones.
 
-    :param str ini: The path of the INI file.
+    :param tuple argparse: A tuple `(args, mapping)`.
+      `args`: The parsed `argparse` object.
+      `mapping`: A dictionary like this one: `{'section.key': 'dest'}`. `dest`
+      are the propertiy name of the `args` object.
     :param str environ: The prefix of the environment variables.
-    :param str argparse: The parsed `argparse` object.
+    :param str ini: The path of the INI file.
     """
     def __init__(self, **kwargs):
         readers = load_readers_by_keyword(**kwargs)
