@@ -220,17 +220,14 @@ class Watch:
     provide and setup a logging facility.
     """
 
-    def __init__(self, config_file=None, config_reader=None,
-                 raise_exceptions=True):
+    def __init__(self, config_file, raise_exceptions=True):
         log, log_handler = setup_logging()
 
         self.log = log
         """A ready to go and configured logger. An instance of
         :py:class:`logging.Logger`."""
 
-        self._config_reader = config_reader
-        if not config_reader and config_file:
-            self._config_reader = ConfigReader(ini=config_file)
+        self._conf = ConfigReader(ini=config_file)
 
         self._log_handler = log_handler
         """An instance of :py:class:`LoggingHandler`."""
@@ -270,7 +267,7 @@ class Watch:
         """
         if not subject:
             subject = self._build_email_subject()
-        conf = self._config_reader
+        conf = self._conf
         return self._log_handler.send_email(
             from_addr=conf.email.from_addr,
             to_addr=conf.email.to_addr,
