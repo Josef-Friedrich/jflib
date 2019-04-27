@@ -16,7 +16,8 @@ from jflib.config_reader import \
 
 # [Romantic]
 # name = Schumann
-INI_FILE = os.path.join(os.path.dirname(__file__), 'files', 'config.ini')
+FILES_DIR = os.path.join(os.path.dirname(__file__), 'files')
+INI_FILE = os.path.join(FILES_DIR, 'config.ini')
 
 os.environ['XXX__Classical__name'] = 'Mozart'
 os.environ['XXX__Baroque__name'] = 'Bach'
@@ -160,3 +161,33 @@ class TestClassConfigReader(unittest.TestCase):
     def test_valid(self):
         config = ConfigReader(ini=INI_FILE, environ='XXX')
         self.assertEqual(config.Classical.name, 'Mozart')
+
+
+class TestTypes(unittest.TestCase):
+
+    def setUp(self):
+        self.config = ConfigReader(ini=os.path.join(FILES_DIR, 'types.ini'))
+
+    def test_int(self):
+        self.assertEqual(self.config.types.int, 1)
+
+    def test_float(self):
+        self.assertEqual(self.config.types.float, 1.1)
+
+    def test_str(self):
+        self.assertEqual(self.config.types.str, 'Some text')
+
+    def test_list(self):
+        self.assertEqual(self.config.types.list, [1, 2, 3])
+
+    def test_tuple(self):
+        self.assertEqual(self.config.types.tuple, (1, 2, 3))
+
+    def test_dict(self):
+        self.assertEqual(self.config.types.dict, {'one': 1, 'two': 2})
+
+    def test_code(self):
+        self.assertEqual(self.config.types.code, 'print(\'lol\')')
+
+    def test_invalid_code(self):
+        self.assertEqual(self.config.types.invalid_code, 'print(\'lol)')

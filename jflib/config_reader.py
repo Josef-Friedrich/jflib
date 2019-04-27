@@ -24,7 +24,7 @@ argparse arguments (`argparse`): (You have to specify a mapping)
     }
 
 """
-
+import ast
 import os
 import configparser
 import re
@@ -131,14 +131,26 @@ class Reader:
                          '(section “{}” key “{}”).'.format(section, key))
 
 
-class ObjectAttributeInterfaceLevel2:
+class Value:
 
     def __init__(self, reader, section):
         self._reader = reader
         self._section = section
 
+    def _auto_type(self, value):
+        """https://stackoverflow.com/a/7019325"""
+        try:
+            return ast.literal_eval(value)
+        except ValueError:
+            return value
+        # ERROR: test_method_send_email_with_config_reader
+        # (test_command_watcher.TestClassWatch)
+        # AttributeError: 'SyntaxError' object has no attribute 'filename'
+        except SyntaxError:
+            return value
+
     def __getattr__(self, name):
-        return self._reader.get(self._section, name)
+        return self._auto_type(self._reader.get(self._section, name))
 
 
 def load_readers_by_keyword(**kwargs):
@@ -166,4 +178,4 @@ class ConfigReader(object):
         self._reader = Reader(*readers)
 
     def __getattr__(self, name):
-        return ObjectAttributeInterfaceLevel2(self._reader, section=name)
+        return Value(self._reader, section=name)
