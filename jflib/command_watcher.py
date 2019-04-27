@@ -263,26 +263,21 @@ class Watch:
                 commands.append(' '.join(process.args))
         return 'command_watcher: {}'.format('; '.join(commands))
 
-    def send_email(self, from_addr=None, to_addr=None, subject=None,
-                   smtp_login=None, smtp_password=None, smtp_server=None):
+    def send_email(self, subject=None, to_addr=None):
         """
-        :param str from_addr: The from email address.
-        :param str to_addr: The to email address.
         :param str subject: The email subject.
-        :param str smtp_login: The SMTP login name.
-        :param str smtp_password: The SMTP password.
-        :param str smtp_server: For example smtp.example.com:587
+        :param str to_addr: The to email address.
         """
         if not subject:
             subject = self._build_email_subject()
         conf = self._config_reader
         return self._log_handler.send_email(
-            from_addr=from_addr if from_addr else conf.email.from_addr,
-            to_addr=to_addr if to_addr else conf.email.to_addr,
+            from_addr=conf.email.from_addr,
+            to_addr=conf.email.to_addr,
             subject=subject,
-            smtp_login=smtp_login if smtp_login else conf.email.smtp_login,
-            smtp_password=smtp_password if smtp_password else conf.email.smtp_password,  # noqa: E501
-            smtp_server=smtp_server if smtp_server else conf.email.smtp_server,
+            smtp_login=conf.email.smtp_login,
+            smtp_password=conf.email.smtp_password,
+            smtp_server=conf.email.smtp_server,
         )
 
     def _stdout_stderr_reader(self, pipe, stream):
