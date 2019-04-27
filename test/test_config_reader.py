@@ -52,6 +52,51 @@ class TestFunctionValidateKey(unittest.TestCase):
             validate_key('ö')
 
 
+# Reader classes ##############################################################
+
+
+class TestClassArgparse(unittest.TestCase):
+
+    def test_method_get(self):
+        argparse = Argparse(
+            args=args,
+            mapping={
+                'Classical.name': 'classical_name',
+                'Baroque.name': 'baroque_name',
+            })
+        self.assertEqual(argparse.get('Classical', 'name'), 'Mozart')
+        self.assertEqual(argparse.get('Baroque', 'name'), 'Bach')
+
+    def test_exception(self):
+        argparse = Argparse(
+            args=args,
+            mapping={
+                'Classical.name': 'classical_name',
+                'Baroque.name': 'baroque_name',
+                'Romantic.name': 'romantic_name',
+
+            })
+        with self.assertRaises(ConfigValueError):
+            argparse.get('Romantic', 'name')
+
+        with self.assertRaises(ConfigValueError):
+            argparse.get('Modern', 'name')
+
+
+class TestClassDictionary(unittest.TestCase):
+
+    dictionary = {'Classical': {'name': 'Mozart'}}
+
+    def test_method_get(self):
+        dictionary = Dictionary(dictionary=self.dictionary)
+        self.assertEqual(dictionary.get('Classical', 'name'), 'Mozart')
+
+    def test_exception(self):
+        dictionary = Dictionary(dictionary=self.dictionary)
+        with self.assertRaises(ConfigValueError):
+            dictionary.get('Romantic', 'name')
+
+
 class TestClassEnviron(unittest.TestCase):
 
     def test_method_get(self):
@@ -106,47 +151,7 @@ class TestClassIni(unittest.TestCase):
             '“lol”).',
         )
 
-
-class TestClassArgparse(unittest.TestCase):
-
-    def test_method_get(self):
-        argparse = Argparse(
-            args=args,
-            mapping={
-                'Classical.name': 'classical_name',
-                'Baroque.name': 'baroque_name',
-            })
-        self.assertEqual(argparse.get('Classical', 'name'), 'Mozart')
-        self.assertEqual(argparse.get('Baroque', 'name'), 'Bach')
-
-    def test_exception(self):
-        argparse = Argparse(
-            args=args,
-            mapping={
-                'Classical.name': 'classical_name',
-                'Baroque.name': 'baroque_name',
-                'Romantic.name': 'romantic_name',
-
-            })
-        with self.assertRaises(ConfigValueError):
-            argparse.get('Romantic', 'name')
-
-        with self.assertRaises(ConfigValueError):
-            argparse.get('Modern', 'name')
-
-
-class TestClassDictionary(unittest.TestCase):
-
-    dictionary = {'Classical': {'name': 'Mozart'}}
-
-    def test_method_get(self):
-        dictionary = Dictionary(dictionary=self.dictionary)
-        self.assertEqual(dictionary.get('Classical', 'name'), 'Mozart')
-
-    def test_exception(self):
-        dictionary = Dictionary(dictionary=self.dictionary)
-        with self.assertRaises(ConfigValueError):
-            dictionary.get('Romantic', 'name')
+# Common code #################################################################
 
 
 class TestClassReader(unittest.TestCase):
@@ -187,11 +192,88 @@ class TestFunctionLoadReadersByKeyword(unittest.TestCase):
         self.assertEqual(readers[1].__class__.__name__, 'Ini')
 
 
+# Integration tests ###########################################################
+
+
 class TestClassConfigReader(unittest.TestCase):
 
-    def test_valid(self):
-        config = ConfigReader(ini=INI_FILE, environ='XXX')
-        self.assertEqual(config.Classical.name, 'Mozart')
+    def setUp(self):
+        # argparser
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--common-key')
+        parser.add_argument('--specific-argparse')
+        args = parser.parse_args(
+            ['--common-key', 'argparse',
+             '--specific-argparse', 'argparse']
+        )
+        self.argparse = (
+            args,
+            {'common.key': 'common_key',
+                'specific.argparse': 'specific_argparse'}
+        )
+        # dictionary
+        self.dictionary = {'common': {'key': 'dictionary'},
+                           'specific': {'dictionary': 'dictionary'}}
+
+        # environ
+        self.environ = 'YYY'
+        os.environ['YYY__common__key'] = 'environ'
+        os.environ['YYY__specific__environ'] = 'environ'
+
+        # ini
+        self.ini = os.path.join(FILES_DIR, 'integration.ini')
+
+    def tearDown(self):
+        del os.environ['YYY__common__key']
+        del os.environ['YYY__specific__environ']
+
+    def test_argparse_first(self):
+        config = ConfigReader(
+            argparse=self.argparse,
+            dictionary=self.dictionary,
+            environ=self.environ,
+            ini=self.ini,
+        )
+        self.assertEqual(config.common.key, 'argparse')
+
+    def test_dictionary_first(self):
+        config = ConfigReader(
+            dictionary=self.dictionary,
+            argparse=self.argparse,
+            environ=self.environ,
+            ini=self.ini,
+        )
+        self.assertEqual(config.common.key, 'dictionary')
+
+    def test_environ_first(self):
+        config = ConfigReader(
+            environ=self.environ,
+            argparse=self.argparse,
+            dictionary=self.dictionary,
+            ini=self.ini,
+        )
+        self.assertEqual(config.common.key, 'environ')
+
+    def test_ini_first(self):
+        config = ConfigReader(
+            ini=self.ini,
+            argparse=self.argparse,
+            dictionary=self.dictionary,
+            environ=self.environ,
+        )
+        self.assertEqual(config.common.key, 'ini')
+
+    def test_specifiy_values(self):
+        config = ConfigReader(
+            argparse=self.argparse,
+            dictionary=self.dictionary,
+            environ=self.environ,
+            ini=self.ini,
+        )
+        self.assertEqual(config.specific.argparse, 'argparse')
+        self.assertEqual(config.specific.dictionary, 'dictionary')
+        self.assertEqual(config.specific.environ, 'environ')
+        self.assertEqual(config.specific.ini, 'ini')
 
 
 class TestTypes(unittest.TestCase):

@@ -2,19 +2,6 @@
 A configuration reader which reads values stored in two levels of keys.
 The first level is named `section` and the second level `key`.
 
-INI file (`ini`):
-
-.. code:: ini
-
-    [section]
-    key = value
-
-Environment variables (`environ`):
-
-.. code:: shell
-
-    export prefix__section__key=value
-
 argparse arguments (`argparse`): (You have to specify a mapping)
 
 .. code::
@@ -22,6 +9,31 @@ argparse arguments (`argparse`): (You have to specify a mapping)
     mapping = {
         'section.key': 'args_attribute'
     }
+
+A python dictionary (`dictonary`):
+
+.. code:: python
+
+    {
+        'section':  {
+            'key': 'value'
+        }
+    }
+
+Environment variables (`environ`):
+
+.. code:: shell
+
+    export prefix__section__key=value
+
+INI file (`ini`):
+
+.. code:: ini
+
+    [section]
+    key = value
+
+
 
 """
 import ast
@@ -88,6 +100,7 @@ class Argparse(ReaderBase):
 
 
 class Dictionary(ReaderBase):
+    """Useful for default values."""
 
     def __init__(self, dictionary):
         self._dictionary = dictionary
@@ -200,46 +213,49 @@ class Value:
 
 
 def load_readers_by_keyword(**kwargs):
-    """Available readers: `argparse`, `environ`, `ini`.
+    """Available readers: `argparse`, `dictionary`, `environ`, `ini`.
 
     The arguments of this class have to be specified as keyword arguments.
     Each keyword stands for a configuration reader class.
-    The order of the keywords is important. The last keyword, more
-    specifically the last reader class, overwrites the previous ones.
+    The order of the keywords is important. The first keyword, more
+    specifically the first reader class, overwrites the next ones.
 
     :param tuple argparse: A tuple `(args, mapping)`.
       `args`: The parsed `argparse` object.
       `mapping`: A dictionary like this one: `{'section.key': 'dest'}`. `dest`
       are the propertiy name of the `args` object.
+    :param dict dictonary: A two dimensional nested dictionary
+      `{'section': {'key': 'value'}}`
     :param str environ: The prefix of the environment variables.
     :param str ini: The path of the INI file.
     """
     readers = []
     for keyword, value in kwargs.items():
-        if keyword == 'ini':
-            readers.append(Ini(path=value))
+        if keyword == 'argparse':
+            readers.append(Argparse(args=value[0], mapping=value[1]))
+        elif keyword == 'dictionary':
+            readers.append(Dictionary(dictionary=value))
         elif keyword == 'environ':
             readers.append(Environ(prefix=value))
-        elif keyword == 'argparse':
-            readers.append(Argparse(args=value[0], mapping=value[1]))
-        elif keyword == 'dictonary':
-            readers.append(Dictionary(dictionary=value))
-
+        elif keyword == 'ini':
+            readers.append(Ini(path=value))
     return readers
 
 
 class ConfigReader(object):
-    """Available readers: `argparse`, `environ`, `ini`.
+    """Available readers: `argparse`, `dictionary`, `environ`, `ini`.
 
     The arguments of this class have to be specified as keyword arguments.
     Each keyword stands for a configuration reader class.
-    The order of the keywords is important. The last keyword, more
-    specifically the last reader class, overwrites the previous ones.
+    The order of the keywords is important. The first keyword, more
+    specifically the first reader class, overwrites the next ones.
 
     :param tuple argparse: A tuple `(args, mapping)`.
       `args`: The parsed `argparse` object.
       `mapping`: A dictionary like this one: `{'section.key': 'dest'}`. `dest`
       are the propertiy name of the `args` object.
+    :param dict dictonary: A two dimensional nested dictionary
+      `{'section': {'key': 'value'}}`
     :param str environ: The prefix of the environment variables.
     :param str ini: The path of the INI file.
     """
