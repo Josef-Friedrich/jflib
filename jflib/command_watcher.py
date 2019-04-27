@@ -222,20 +222,21 @@ class Watch:
     """
 
     def __init__(self, config_file, raise_exceptions=True):
-        log, log_handler = setup_logging()
+        self._hostname = socket.gethostname()
+        """The hostname of machine the watcher running on."""
 
+        log, log_handler = setup_logging()
         self.log = log
         """A ready to go and configured logger. An instance of
         :py:class:`logging.Logger`."""
-        self.log.info('Hostname: {}'.format(socket.gethostname()))
+        self.log.info('Hostname: {}'.format(self._hostname))
+        self._log_handler = log_handler
+        """An instance of :py:class:`LoggingHandler`."""
 
         self._conf = ConfigReader(
             ini=config_file,
             dictionary={'email': {'subject_prefix': 'command_watcher'}}
         )
-
-        self._log_handler = log_handler
-        """An instance of :py:class:`LoggingHandler`."""
 
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""
@@ -277,7 +278,7 @@ class Watch:
             subject = self._build_email_subject()
         conf = self._conf
         return self._log_handler.send_email(
-            from_addr=conf.email.from_addr,
+            from_addr='{} <{}>'.format(self._hostname, conf.email.from_addr),
             to_addr=conf.email.to_addr,
             subject=subject,
             smtp_login=conf.email.smtp_login,

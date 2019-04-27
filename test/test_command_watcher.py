@@ -1,11 +1,12 @@
 import os
 import unittest
 from unittest import mock
+import socket
 
 from jflib.capturing import Capturing
 from jflib.command_watcher import Watch, setup_logging, CommandWatcherError
 
-
+HOSTNAME = socket.gethostname()
 DIR_FILES = os.path.join(os.path.dirname(__file__), 'files')
 CONF = os.path.join(DIR_FILES, 'command_watcher', 'conf.ini')
 
@@ -181,6 +182,10 @@ class TestClassWatch(unittest.TestCase):
         with self.assertRaises(TypeError):
             watch.run('ls', xxx=False)
 
+    def test_property_hostname(self):
+        watch = Watch(config_file=CONF)
+        self.assertEqual(watch._hostname, HOSTNAME)
+
     def test_property_stdout(self):
         watch = Watch(config_file=CONF)
         watch.log.stdout('stdout')
@@ -213,10 +218,14 @@ class TestClassWatch(unittest.TestCase):
         server = SMTP.return_value
         server.login.assert_called_with('Login', 'Password')
         call_args = server.sendmail.call_args[0]
-        self.assertEqual(call_args[0], 'from@example.com')
+        self.assertEqual(
+            call_args[0],
+            '{} <{}>'.format(HOSTNAME, 'from@example.com')
+        )
         self.assertEqual(call_args[1], ['to@example.com'])
         self.assertIn(
-            'From: from@example.com\nTo: to@example.com\n',
+            'From: {} <{}>\nTo: to@example.com\n'
+            .format(HOSTNAME, 'from@example.com'),
             call_args[2]
         )
 
@@ -229,7 +238,7 @@ class TestClassWatch(unittest.TestCase):
 
         watch.send_email()
         send_email.assert_called_with(
-            from_addr='from@example.com',
+            from_addr='{} <{}>'.format(HOSTNAME, 'from@example.com'),
             smtp_login='Login',
             smtp_password='Password',
             smtp_server='smtp.example.com:587',
