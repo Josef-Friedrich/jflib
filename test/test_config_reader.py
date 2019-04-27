@@ -2,14 +2,15 @@ import os
 import unittest
 import argparse
 from jflib.config_reader import \
+    Argparse, \
     ConfigReader, \
+    ConfigValueError, \
+    Dictionary, \
     Environ, \
     Ini, \
-    validate_key, \
-    Reader, \
     load_readers_by_keyword, \
-    Argparse, \
-    ConfigValueError
+    Reader, \
+    validate_key
 
 FILES_DIR = os.path.join(os.path.dirname(__file__), 'files')
 
@@ -132,6 +133,20 @@ class TestClassArgparse(unittest.TestCase):
 
         with self.assertRaises(ConfigValueError):
             argparse.get('Modern', 'name')
+
+
+class TestClassDictionary(unittest.TestCase):
+
+    dictionary = {'Classical': {'name': 'Mozart'}}
+
+    def test_method_get(self):
+        dictionary = Dictionary(dictionary=self.dictionary)
+        self.assertEqual(dictionary.get('Classical', 'name'), 'Mozart')
+
+    def test_exception(self):
+        dictionary = Dictionary(dictionary=self.dictionary)
+        with self.assertRaises(ConfigValueError):
+            dictionary.get('Romantic', 'name')
 
 
 class TestClassReader(unittest.TestCase):

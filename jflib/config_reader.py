@@ -87,6 +87,29 @@ class Argparse(ReaderBase):
                             .format(section, key))
 
 
+class Dictionary(ReaderBase):
+
+    def __init__(self, dictionary):
+        self._dictionary = dictionary
+
+    def get(self, section, key):
+        """
+        Get a configuration value stored under a section and a key.
+
+        :param string section: Name of the section.
+        :param string key: Name of the key.
+
+        :return: The configuration value stored under a section and a key.
+        """
+        try:
+            return self._dictionary[section][key]
+        except KeyError:
+            self._exception(
+                'In the dictionary is no value at dict[{}][{}]'
+                .format(section, key)
+            )
+
+
 class Environ(ReaderBase):
 
     def __init__(self, prefix=None):
@@ -199,6 +222,8 @@ def load_readers_by_keyword(**kwargs):
             readers.append(Environ(prefix=value))
         elif keyword == 'argparse':
             readers.append(Argparse(args=value[0], mapping=value[1]))
+        elif keyword == 'dictonary':
+            readers.append(Dictionary(dictionary=value))
 
     return readers
 
