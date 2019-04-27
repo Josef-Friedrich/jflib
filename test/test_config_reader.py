@@ -11,12 +11,13 @@ from jflib.config_reader import \
     Argparse, \
     ConfigValueError
 
+FILES_DIR = os.path.join(os.path.dirname(__file__), 'files')
+
 # [Classical]
 # name = Mozart
 
 # [Romantic]
 # name = Schumann
-FILES_DIR = os.path.join(os.path.dirname(__file__), 'files')
 INI_FILE = os.path.join(FILES_DIR, 'config.ini')
 
 os.environ['XXX__Classical__name'] = 'Mozart'
