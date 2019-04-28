@@ -31,6 +31,11 @@ Modules
 
 .. automodule:: jflib.send_email
 
+`send_nsca`
+===========
+
+.. automodule:: jflib.send_nsca
+
 `termcolor`
 ===========
 
