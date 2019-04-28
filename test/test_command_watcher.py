@@ -246,6 +246,22 @@ class TestClassWatch(unittest.TestCase):
             to_addr='to@example.com'
         )
 
+    def test_method_send_nsca(self):
+        watch = Watch(config_file=CONF)
+        with mock.patch('jflib.command_watcher.send_nsca') as send_nsca:
+            watch.send_nsca(status=3, service_name='Service',
+                            text_output='text')
+        send_nsca.assert_called_with(
+            encryption_method=1,
+            host_name=HOSTNAME,
+            password='1234',
+            port=5667,
+            remote_host='1.2.3.4',
+            service_name='Service',
+            status=3,
+            text_output='text'
+        )
+
     def test_exception(self):
         watch = Watch(config_file=CONF)
         with self.assertRaises(CommandWatcherError):

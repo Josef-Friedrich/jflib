@@ -27,6 +27,7 @@ import uuid
 from . import termcolor
 from .config_reader import ConfigReader
 from .send_email import send_email
+from .send_nsca import send_nsca
 
 # CRITICAL 50
 # ERROR 40
@@ -235,7 +236,14 @@ class Watch:
 
         self._conf = ConfigReader(
             ini=config_file,
-            dictionary={'email': {'subject_prefix': 'command_watcher'}}
+            dictionary={
+                'email': {
+                    'subject_prefix': 'command_watcher',
+                },
+                'nsca': {
+                    'port': 5667,
+                },
+            }
         )
 
         self._queue = queue.Queue()
@@ -284,6 +292,24 @@ class Watch:
             smtp_login=conf.email.smtp_login,
             smtp_password=conf.email.smtp_password,
             smtp_server=conf.email.smtp_server,
+        )
+
+    def send_nsca(self, status, service_name, text_output):
+        """Send a NSCA message to a remote NSCA server.
+
+        :param int status: Integer describing the status
+        :param str|bytes service_name: Service to report as
+        :param str|bytes text_output: Freeform text, should be under 512b
+        """
+        send_nsca(
+            status=status,
+            host_name=self._hostname,
+            service_name=service_name,
+            text_output=text_output,
+            remote_host=self._conf.nsca.remote_host,
+            password=str(self._conf.nsca.password),
+            encryption_method=self._conf.nsca.encryption_method,
+            port=self._conf.nsca.port,
         )
 
     def _stdout_stderr_reader(self, pipe, stream):
