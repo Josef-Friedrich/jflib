@@ -33,15 +33,15 @@ class Capturing(list):
     """Capture the stdout or stderr output. This class is designed for unit
     tests.
 
-    :param str stream: `stdout` or `stderr`.
-    :param bool clean_ansi: Clean out ANSI colors from the captured output.
+    :param stream: `stdout` or `stderr`.
+    :param clean_ansi: Clean out ANSI colors from the captured output.
 
     .. seealso::
 
         `Answer on Stackoverflow <https://stackoverflow.com/a/16571630>`_
     """
 
-    def __init__(self, stream='stdout', clean_ansi=False):
+    def __init__(self, stream: str = 'stdout', clean_ansi: bool = False):
         if stream not in ['stdout', 'stderr']:
             raise(ValueError('“stream” must be either “stdout” or “stderr”'))
         self.stream = stream

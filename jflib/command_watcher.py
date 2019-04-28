@@ -23,6 +23,7 @@ import threading
 import socket
 import time
 import uuid
+from typing import Union
 
 from . import termcolor
 from .config_reader import ConfigReader
@@ -303,11 +304,11 @@ class Watch:
             smtp_server=conf.email.smtp_server,
         )
 
-    def send_nsca(self, status: int, text_output):
+    def send_nsca(self, status: int, text_output: Union[str, bytes]):
         """Send a NSCA message to a remote NSCA server.
 
         :param status: Integer describing the status
-        :param str|bytes text_output: Freeform text, should be under 512b
+        :param text_output: Freeform text, should be under 512b
         """
         send_nsca(
             status=status,
