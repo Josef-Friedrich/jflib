@@ -220,11 +220,20 @@ def setup_logging():
 class Watch:
     """Watch the execution of a command. Capture all output of a command.
     provide and setup a logging facility.
-    """
 
-    def __init__(self, config_file, raise_exceptions=True):
+    :param config_file: The file path of the configuration file in the INI
+      format.
+    :param service_name: A name of the watched service.
+    :param raise_exceptions: Raise exceptions if `watch.run()` exists with a
+      non-zero exit code.
+    """
+    def __init__(self, config_file: str, service_name: str,
+                 raise_exceptions: bool = True):
         self._hostname = socket.gethostname()
         """The hostname of machine the watcher running on."""
+
+        self._service_name = service_name
+        """A name of the watched service."""
 
         log, log_handler = setup_logging()
         self.log = log
@@ -294,17 +303,16 @@ class Watch:
             smtp_server=conf.email.smtp_server,
         )
 
-    def send_nsca(self, status, service_name, text_output):
+    def send_nsca(self, status: int, text_output):
         """Send a NSCA message to a remote NSCA server.
 
-        :param int status: Integer describing the status
-        :param str|bytes service_name: Service to report as
+        :param status: Integer describing the status
         :param str|bytes text_output: Freeform text, should be under 512b
         """
         send_nsca(
             status=status,
             host_name=self._hostname,
-            service_name=service_name,
+            service_name=self._service_name,
             text_output=text_output,
             remote_host=self._conf.nsca.remote_host,
             password=str(self._conf.nsca.password),

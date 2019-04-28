@@ -137,11 +137,11 @@ class TestClassWatch(unittest.TestCase):
         self.cmd_stdout = os.path.join(DIR_FILES, 'stdout.sh')
 
     def test_argument_config_file(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         self.assertEqual(watch._conf.email.to_addr, 'to@example.com')
 
     def test_watch_stdout(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         with Capturing() as output:
             process = watch.run(self.cmd_stdout)
         self.assertEqual(process.returncode, 0)
@@ -151,7 +151,8 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('Execution time: ', output[2])
 
     def test_watch_stderr(self):
-        watch = Watch(config_file=CONF, raise_exceptions=False)
+        watch = Watch(config_file=CONF, service_name='test',
+                      raise_exceptions=False)
         with Capturing(stream='stderr') as output:
             process = watch.run(self.cmd_stderr)
         self.assertEqual(process.returncode, 1)
@@ -160,14 +161,15 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('One line to stderr!', output[0])
 
     def test_watch_run_multiple(self):
-        watch = Watch(config_file=CONF, raise_exceptions=False)
+        watch = Watch(config_file=CONF, service_name='test',
+                      raise_exceptions=False)
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
         self.assertEqual(len(watch._log_handler.buffer), 7)
         self.assertIn('Hostname: ', watch._log_handler.all_records)
 
     def test_method_run_kwargs(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         with mock.patch('subprocess.Popen') as Popen:
             process = Popen.return_value
             process.stdout = b''
@@ -178,26 +180,30 @@ class TestClassWatch(unittest.TestCase):
                                  stdout=-1)
 
     def test_method_run_kwargs_exception(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         with self.assertRaises(TypeError):
             watch.run('ls', xxx=False)
 
+    def test_property_service_name(self):
+        watch = Watch(config_file=CONF, service_name='Service')
+        self.assertEqual(watch._service_name, 'Service')
+
     def test_property_hostname(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         self.assertEqual(watch._hostname, HOSTNAME)
 
     def test_property_stdout(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         watch.log.stdout('stdout')
         self.assertEqual(watch.stdout, 'stdout')
 
     def test_property_stderr(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         watch.log.stderr('stderr')
         self.assertEqual(watch.stderr, 'stderr')
 
     def test_property_completed_processes(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         self.assertEqual(watch._completed_processes, [])
         watch.run(['ls'])
         watch.run(['ls', '-l'])
@@ -205,7 +211,7 @@ class TestClassWatch(unittest.TestCase):
         self.assertEqual(len(watch._completed_processes), 3)
 
     def test_method_send_email_with_config_reader(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         watch.log.info('info')
 
         with mock.patch('smtplib.SMTP') as SMTP:
@@ -230,7 +236,7 @@ class TestClassWatch(unittest.TestCase):
         )
 
     def test_method_send_email_subject(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         send_email = mock.Mock()
         watch._log_handler.send_email = send_email
         watch.run('ls')
@@ -247,10 +253,9 @@ class TestClassWatch(unittest.TestCase):
         )
 
     def test_method_send_nsca(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='Service')
         with mock.patch('jflib.command_watcher.send_nsca') as send_nsca:
-            watch.send_nsca(status=3, service_name='Service',
-                            text_output='text')
+            watch.send_nsca(status=3, text_output='text')
         send_nsca.assert_called_with(
             encryption_method=1,
             host_name=HOSTNAME,
@@ -263,6 +268,6 @@ class TestClassWatch(unittest.TestCase):
         )
 
     def test_exception(self):
-        watch = Watch(config_file=CONF)
+        watch = Watch(config_file=CONF, service_name='test')
         with self.assertRaises(CommandWatcherError):
             watch.run(self.cmd_stderr)
