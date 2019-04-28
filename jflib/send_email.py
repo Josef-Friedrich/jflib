@@ -4,18 +4,18 @@ from email.mime.text import MIMEText
 from email.header import Header
 
 
-def send_email(from_addr, to_addr, subject, body, smtp_login, smtp_password,
-               smtp_server):
+def send_email(from_addr: str, to_addr: str, subject: str, body: str,
+               smtp_login: str, smtp_password: str, smtp_server: str):
     """
     Send a email.
 
-    :param str from_addr: The from email address.
-    :param str to_addr: The to email address.
-    :param str subject: The email subject.
-    :param str body: The email body.
-    :param str smtp_login: The SMTP login name.
-    :param str smtp_password: The SMTP password.
-    :param str smtp_server: For example smtp.example.com:587
+    :param from_addr: The from email address.
+    :param to_addr: The to email address.
+    :param subject: The email subject.
+    :param body: The email body.
+    :param smtp_login: The SMTP login name.
+    :param smtp_password: The SMTP password.
+    :param smtp_server: For example smtp.example.com:587
 
     :return: Problems
     """

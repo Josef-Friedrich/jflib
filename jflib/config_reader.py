@@ -40,13 +40,15 @@ import ast
 import os
 import configparser
 import re
+import argparse
 
 
 class ConfigValueError(Exception):
     """Configuration value can’t be found."""
 
 
-def validate_key(key):
+def validate_key(key: str):
+    """:param key: Validate the name of a section or a key."""
     if re.match(r'^[a-zA-Z0-9_]+$', key):
         return True
     raise ValueError(
@@ -67,21 +69,21 @@ class ReaderBase:
 
 class Argparse(ReaderBase):
     """
-    :param obj args: The parsed `argparse` object.
-    :param dict mapping: A dictionary like this one: `{'section.key': 'dest'}`.
+    :param args: The parsed `argparse` object.
+    :param mapping: A dictionary like this one: `{'section.key': 'dest'}`.
       `dest` are the propertiy name of the `args` object.
     """
 
-    def __init__(self, args, mapping):
+    def __init__(self, args: argparse.Namespace, mapping: dict):
         self._args = args
         self._mapping = mapping
 
-    def get(self, section, key):
+    def get(self, section: str, key: str):
         """
         Get a configuration value stored under a section and a key.
 
-        :param str section: Name of the section.
-        :param str key: Name of the key.
+        :param section: Name of the section.
+        :param key: Name of the key.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -100,17 +102,19 @@ class Argparse(ReaderBase):
 
 
 class Dictionary(ReaderBase):
-    """Useful for default values."""
+    """Useful for default values.
 
-    def __init__(self, dictionary):
+    :param dictionary: A nested dictionary.
+    """
+    def __init__(self, dictionary: dict):
         self._dictionary = dictionary
 
-    def get(self, section, key):
+    def get(self, section: str, key: str):
         """
         Get a configuration value stored under a section and a key.
 
-        :param str section: Name of the section.
-        :param str key: Name of the key.
+        :param section: Name of the section.
+        :param key: Name of the key.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -124,16 +128,21 @@ class Dictionary(ReaderBase):
 
 
 class Environ(ReaderBase):
+    """Read configuration values from environment variables. The name
+    of the environment variables have to be in the form `prefix__section__key`.
+    Note the two following underscores.
 
-    def __init__(self, prefix=None):
+    :param prefix: A enviroment prefix"""
+
+    def __init__(self, prefix: str = None):
         self._prefix = prefix
 
-    def get(self, section, key):
+    def get(self, section: str, key: str):
         """
         Get a configuration value stored under a section and a key.
 
-        :param str section: Name of the section.
-        :param str key: Name of the key.
+        :param section: Name of the section.
+        :param key: Name of the key.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -147,17 +156,20 @@ class Environ(ReaderBase):
 
 
 class Ini(ReaderBase):
+    """Read configuration files from text files in the INI format.
 
-    def __init__(self, path):
+    :param path: The path of the INI file.
+    """
+    def __init__(self, path: str):
         self._config = configparser.ConfigParser()
         self._config.read(path)
 
-    def get(self, section, key):
+    def get(self, section: str, key: str):
         """
         Get a configuration value stored under a section and a key.
 
-        :param str section: Name of the section.
-        :param str key: Name of the key.
+        :param section: Name of the section.
+        :param key: Name of the key.
         """
         try:
             return self._config[section][key]
