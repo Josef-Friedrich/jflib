@@ -1,4 +1,4 @@
-# https://github.com/Josef-Friedrich/send_nsca/commit/f55a140235376ecafbbdd154095ae02fda104b2e
+# https://github.com/Josef-Friedrich/send_nsca/commit/73d1d4e1ea33418a3163a487365f3079de9dd589
 """
 send_nsca.py: A replacement for the C-based send_nsca, able
 to be run in pure-python. Depends on PyCrypto and Python >= 2.6.
@@ -22,7 +22,7 @@ License, Version 2.1
 Forked from `this repository at Github <https://github.com/Yelp/send_nsca/commit/8ad96b069c2bc200ca38dcc6fad0c7a8b3e47475>`_
 
 Changes on this fork:
-=====================
+---------------------
 
 * All code in one file.
 * PEP 8
@@ -35,13 +35,15 @@ Another interesting Python package that sends NSCA messages is
 `pynsca <https://github.com/djmitche/pynsca>`_.
 
 Usage
-=====
+-----
+
+The convenience function:
 
 .. code:: python
 
-    import send_nsca
+    from send_nsca import send_nsca, STATE_OK
     send_nsca.send_nsca(
-        status=send_nsca.STATE_OK,
+        status=STATE_OK,
         host_name='host',
         service_name='service',
         text_output='output',
@@ -50,7 +52,17 @@ Usage
         encryption_method=1
     )
 
+The class:
+
+.. code:: python
+
+    from send_nsca import NscaSender, STATE_OK
+    nsca = NscaSender(remote_host='1.2.3.4', password='1234', encryption_method=1)
+    nsca.send_service(status=STATE_OK, host_name='host', service_name='service',
+                    text_output='output')
+    nsca.disconnect()
 """  # noqa: E501
+
 
 import array
 import binascii
@@ -345,6 +357,17 @@ class ConfigParseError(Exception):
             self.filename, self.lineno, self.msg)
 
 
+def _bytes(value):
+    """To allow `bytes` input as well as `str` for the arguemnts `host`,
+    `service` and `description`."""
+    if isinstance(value, bytes):
+        return value
+    elif isinstance(value, str):
+        return value.encode('ascii')
+    raise ValueError('Input {} is not an instance of bytes or str'
+                     .format(value))
+
+
 class NscaSender(object):
     def __init__(self, remote_host, config_path='/etc/send_nsca.cfg',
                  port=DEFAULT_PORT, timeout=10, send_to_all=True, password='',
@@ -460,6 +483,9 @@ class NscaSender(object):
                     (service, MAX_DESCRIPTION_LENGTH))
 
     def send_service(self, host, service, state, description):
+        host = _bytes(host)
+        service = _bytes(service)
+        description = _bytes(description)
         self._check_alert(
             host=host,
             service=service,
@@ -556,14 +582,13 @@ def send_nsca(
         **kwargs):
     """Helper function to easily send a NSCA message (wraps .nsca.NscaSender)
 
-    Arguments:
-        status: Integer describing the status
-        host_name: Host name to report as
-        service_name: Service to report as
-        text_output: Freeform text, should be under 512b
-        remote_host: Host name to send to
+    :param int status: Integer describing the status
+    :param str|bytes host_name: Host name to report as
+    :param str|bytes service_name: Service to report as
+    :param str|bytes text_output: Freeform text, should be under 512b
+    :param str remote_host: Host name to send to
 
-        All other arguments are passed to the NscaSender constructor
+    All other arguments are passed to the :py:class:`NscaSender` constructor
     """
     try:
         n = NscaSender(remote_host=remote_host, **kwargs)
@@ -577,13 +602,12 @@ def send_nsca(
 def nsca_ok(host_name, service_name, text_output, remote_host, **kwargs):
     """Wrapper for the send_nsca() function to easily send an OK
 
-    Arguments:
-        host_name: Host name to report as
-        service_name: Service to report as
-        text_output: Freeform text, should be under 512b
-        remote_host: Host name to send to
+    :param str|bytes host_name: Host name to report as
+    :param str|bytes service_name: Service to report as
+    :param str|bytes text_output: Freeform text, should be under 512b
+    :param str remote_host: Host name to send to
 
-        All other arguments are passed to the NscaSender constructor
+    All other arguments are passed to the :py:class:`NscaSender` constructor
     """
     return send_nsca(
         status=STATE_OK,
@@ -598,13 +622,12 @@ def nsca_ok(host_name, service_name, text_output, remote_host, **kwargs):
 def nsca_warning(host_name, service_name, text_output, remote_host, **kwargs):
     """Wrapper for the send_nsca() function to easily send a WARNING
 
-    Arguments:
-        host_name: Host name to report as
-        service_name: Service to report as
-        text_output: Freeform text, should be under 512b
-        remote_host: Host name to send to
+    :param str|bytes host_name: Host name to report as
+    :param str|bytes service_name: Service to report as
+    :param str|bytes text_output: Freeform text, should be under 512b
+    :param str remote_host: Host name to send to
 
-        All other arguments are passed to the NscaSender constructor
+    All other arguments are passed to the :py:class:`NscaSender` constructor
     """
     return send_nsca(
         status=STATE_WARNING,
@@ -619,13 +642,12 @@ def nsca_warning(host_name, service_name, text_output, remote_host, **kwargs):
 def nsca_critical(host_name, service_name, text_output, remote_host, **kwargs):
     """Wrapper for the send_nsca() function to easily send a CRITICAL
 
-    Arguments:
-        host_name: Host name to report as
-        service_name: Service to report as
-        text_output: Freeform text, should be under 512b
-        remote_host: Host name to send to
+    :param str|bytes host_name: Host name to report as
+    :param str|bytes service_name: Service to report as
+    :param str|bytes text_output: Freeform text, should be under 512b
+    :param str remote_host: Host name to send to
 
-        All other arguments are passed to the NscaSender constructor
+    All other arguments are passed to the :py:class:`NscaSender` constructor
     """
     return send_nsca(
         status=STATE_CRITICAL,
@@ -640,13 +662,12 @@ def nsca_critical(host_name, service_name, text_output, remote_host, **kwargs):
 def nsca_unknown(host_name, service_name, text_output, remote_host, **kwargs):
     """Wrapper for the send_nsca() function to easily send an UNKNONW
 
-    Arguments:
-        host_name: Host name to report as
-        service_name: Service to report as
-        text_output: Freeform text, should be under 1kb
-        remote_host: Host name to send to
+    :param str|bytes host_name: Host name to report as
+    :param str|bytes service_name: Service to report as
+    :param str|bytes text_output: Freeform text, should be under 512b
+    :param str remote_host: Host name to send to
 
-        All other arguments are passed to the NscaSender constructor
+    All other arguments are passed to the :py:class:`NscaSender` constructor
     """
     return send_nsca(
         status=STATE_UNKNOWN,
