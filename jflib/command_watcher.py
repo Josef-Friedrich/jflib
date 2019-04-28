@@ -23,12 +23,10 @@ import threading
 import socket
 import time
 import uuid
-from typing import Union
 
-from . import termcolor
+from . import termcolor, send_nsca
 from .config_reader import ConfigReader
 from .send_email import send_email
-from .send_nsca import send_nsca
 
 # CRITICAL 50
 # ERROR 40
@@ -45,6 +43,15 @@ logging.addLevelName(STDOUT, 'STDOUT')
 
 LOGFMT = '%(asctime)s_%(msecs)03d %(levelname)s %(message)s'
 DATEFMT = '%Y%m%d_%H%M%S'
+
+CONF_DEFAULTS = {
+    'email': {
+        'subject_prefix': 'command_watcher',
+    },
+    'nsca': {
+        'port': 5667,
+    },
+}
 
 
 class CommandWatcherError(Exception):
@@ -218,6 +225,61 @@ def setup_logging():
     return (logger, handler)
 
 
+class Nsca:
+
+    def __init__(self, config_reader: ConfigReader, service_name: str,
+                 host_name: str):
+        self.conf = config_reader
+        self.service_name = service_name
+        self.host_name = host_name
+
+    @staticmethod
+    def _performance_data(**kwargs) -> str:
+        """
+        :return: A concatenated string
+        :rtype: str
+        """
+        pairs = []
+        for key, value in kwargs.items():
+            pairs.append('{!s}={!s}'.format(key, value))
+        return ' '.join(pairs)
+
+    def _format_text_output(self, status: int, custom_output: str = '',
+                            **kwargs) -> str:
+        perfdata = ''
+        if kwargs:
+            perfdata = ' | {}'.format(self._performance_data(**kwargs))
+
+        output_prefix = '{} {}'.format(self.service_name.upper(),
+                                       send_nsca.States[status])
+        output_suffix = ''
+        if custom_output:
+            output_suffix = ' - {}'.format(custom_output)
+
+        return '{}{}{}'.format(output_prefix, output_suffix, perfdata)
+
+    def send_nsca(self, status: int, custom_output: str = '', **kwargs):
+        """Send a NSCA message to a remote NSCA server.
+
+        :param status: Integer describing the status
+        :param custom_output: Freeform text placed between the prefix
+         (SERVICE OK - ) and the performance data ( | perf_1=1)
+
+        All `kwargs` gets render as performance data.
+        """
+        send_nsca.send_nsca(
+            status=status,
+            host_name=self.host_name,
+            service_name=self.service_name,
+            text_output=self._format_text_output(status, custom_output,
+                                                 **kwargs),
+            remote_host=self.conf.nsca.remote_host,
+            password=str(self.conf.nsca.password),
+            encryption_method=self.conf.nsca.encryption_method,
+            port=self.conf.nsca.port,
+        )
+
+
 class Watch:
     """Watch the execution of a command. Capture all output of a command.
     provide and setup a logging facility.
@@ -246,15 +308,12 @@ class Watch:
 
         self._conf = ConfigReader(
             ini=config_file,
-            dictionary={
-                'email': {
-                    'subject_prefix': 'command_watcher',
-                },
-                'nsca': {
-                    'port': 5667,
-                },
-            }
+            dictionary=CONF_DEFAULTS,
         )
+
+        self._nsca = Nsca(config_reader=self._conf,
+                          service_name=self._service_name,
+                          host_name=self._hostname)
 
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""
@@ -304,22 +363,17 @@ class Watch:
             smtp_server=conf.email.smtp_server,
         )
 
-    def send_nsca(self, status: int, text_output: Union[str, bytes]):
+    def send_nsca(self, status: int, custom_output: str = '', **kwargs):
         """Send a NSCA message to a remote NSCA server.
 
         :param status: Integer describing the status
-        :param text_output: Freeform text, should be under 512b
+        :param custom_output: Freeform text placed between the prefix
+          (SERVICE OK - ) and the performance data ( | perf_1=1)
+
+        All `kwargs` gets render as performance data.
         """
-        send_nsca(
-            status=status,
-            host_name=self._hostname,
-            service_name=self._service_name,
-            text_output=text_output,
-            remote_host=self._conf.nsca.remote_host,
-            password=str(self._conf.nsca.password),
-            encryption_method=self._conf.nsca.encryption_method,
-            port=self._conf.nsca.port,
-        )
+        self._nsca.send_nsca(status=status, custom_output=custom_output,
+                             **kwargs)
 
     def _stdout_stderr_reader(self, pipe, stream):
         """

@@ -3,8 +3,14 @@ import unittest
 from unittest import mock
 import socket
 
+from jflib.config_reader import ConfigReader
 from jflib.capturing import Capturing
-from jflib.command_watcher import Watch, setup_logging, CommandWatcherError
+from jflib import command_watcher
+from jflib.command_watcher import \
+    CommandWatcherError, \
+    Nsca, \
+    setup_logging, \
+    Watch
 
 HOSTNAME = socket.gethostname()
 DIR_FILES = os.path.join(os.path.dirname(__file__), 'files')
@@ -127,6 +133,47 @@ class TestColorizedPrint(unittest.TestCase):
         self.assertEqual(
             output[0][20:],
             '\x1b[7m\x1b[30m Level 1  \x1b[0m \x1b[30mNOTSET 0\x1b[0m'
+        )
+
+
+class TestClassNsca(unittest.TestCase):
+
+    conf = ConfigReader(ini=CONF, dictionary=command_watcher.CONF_DEFAULTS)
+
+    def test_perfomance_data(self):
+        self.assertEqual(Nsca._performance_data(test=1, test_2='lol'),
+                         'test=1 test_2=lol')
+
+    def test_method_send_nsca(self):
+        nsca = Nsca(self.conf, 'Service', 'Host')
+        with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
+                send_nsca:
+            nsca.send_nsca(3, 'text', perf_1=1, perf_2='lol')
+        send_nsca.assert_called_with(
+            encryption_method=1,
+            host_name='Host',
+            password='1234',
+            port=5667,
+            remote_host='1.2.3.4',
+            service_name='Service',
+            status=3,
+            text_output='SERVICE UNKNOWN - text | perf_1=1 perf_2=lol'
+        )
+
+    def test_method_send_nsca_without_custom_output(self):
+        nsca = Nsca(self.conf, 'Service', 'Host')
+        with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
+                send_nsca:
+            nsca.send_nsca(0,  perf_1=1, perf_2='lol')
+        send_nsca.assert_called_with(
+            encryption_method=1,
+            host_name='Host',
+            password='1234',
+            port=5667,
+            remote_host='1.2.3.4',
+            service_name='Service',
+            status=0,
+            text_output='SERVICE OK | perf_1=1 perf_2=lol'
         )
 
 
@@ -254,8 +301,9 @@ class TestClassWatch(unittest.TestCase):
 
     def test_method_send_nsca(self):
         watch = Watch(config_file=CONF, service_name='Service')
-        with mock.patch('jflib.command_watcher.send_nsca') as send_nsca:
-            watch.send_nsca(status=3, text_output='text')
+        with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
+                send_nsca:
+            watch.send_nsca(3, 'text', perf_1=1, perf_2='lol')
         send_nsca.assert_called_with(
             encryption_method=1,
             host_name=HOSTNAME,
@@ -264,7 +312,7 @@ class TestClassWatch(unittest.TestCase):
             remote_host='1.2.3.4',
             service_name='Service',
             status=3,
-            text_output='text'
+            text_output='SERVICE UNKNOWN - text | perf_1=1 perf_2=lol'
         )
 
     def test_exception(self):
