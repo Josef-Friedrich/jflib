@@ -2,9 +2,7 @@ import os
 import unittest
 from unittest import mock
 
-from jflib.config_reader import ConfigReader
 from jflib.capturing import Capturing
-from jflib import command_watcher
 from jflib.command_watcher import \
     CommandWatcherError, \
     EmailMessage, \
@@ -239,8 +237,6 @@ class TestClassNscaMessage(unittest.TestCase):
 
 class TestClassNscaSender(unittest.TestCase):
 
-    conf = ConfigReader(ini=CONF, dictionary=command_watcher.CONF_DEFAULTS)
-
     def assert_called_with(self, mock, status, text_output):
         mock.assert_called_with(
             encryption_method=1,
@@ -254,7 +250,7 @@ class TestClassNscaSender(unittest.TestCase):
         )
 
     def send_nsca(self, *args, **kwargs):
-        nsca = NscaSender(self.conf, 'Service', 'Host')
+        nsca = NscaSender('1.2.3.4', '1234', 1, 5667, 'Service', 'Host')
         with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
                 send_nsca:
             nsca.send(*args, **kwargs)

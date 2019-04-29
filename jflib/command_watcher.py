@@ -349,11 +349,15 @@ class NscaMessage:
 
 
 class NscaSender:
-    """Wrapper around `send_nsca` to format NSCA messages."""
+    """Wrapper around `send_nsca` to send NSCA messages. Set up the NSCA
+    client."""
 
-    def __init__(self, config_reader: ConfigReader, service_name: str,
-                 host_name: str):
-        self.conf = config_reader
+    def __init__(self, remote_host: str, password: str, encryption_method: int,
+                 port: int, service_name: str, host_name: str):
+        self.remote_host = remote_host
+        self.password = password
+        self.encryption_method = encryption_method
+        self.port = port
         self.service_name = service_name
         self.host_name = host_name
 
@@ -378,10 +382,10 @@ class NscaSender:
             host_name=message.host_name,
             service_name=message.service_name,
             text_output=message.text_output,
-            remote_host=self.conf.nsca.remote_host,
-            password=str(self.conf.nsca.password),
-            encryption_method=self.conf.nsca.encryption_method,
-            port=self.conf.nsca.port,
+            remote_host=self.remote_host,
+            password=str(self.password),
+            encryption_method=self.encryption_method,
+            port=self.port,
         )
         return message
 
@@ -425,9 +429,14 @@ class Watch:
             from_addr=self._conf.email.from_addr,
         )
 
-        self._nsca_sender = NscaSender(config_reader=self._conf,
-                                       service_name=self._service_name,
-                                       host_name=self._hostname)
+        self._nsca_sender = NscaSender(
+            remote_host=self._conf.nsca.remote_host,
+            password=self._conf.nsca.password,
+            encryption_method=self._conf.nsca.encryption_method,
+            port=self._conf.nsca.port,
+            service_name=self._service_name,
+            host_name=self._hostname,
+        )
 
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""
