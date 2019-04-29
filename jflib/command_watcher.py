@@ -348,7 +348,7 @@ class NscaMessage:
         return '{}{}{}'.format(output_prefix, output_suffix, output_perfdata)
 
 
-class Nsca:
+class NscaSender:
     """Wrapper around `send_nsca` to format NSCA messages."""
 
     def __init__(self, config_reader: ConfigReader, service_name: str,
@@ -357,7 +357,7 @@ class Nsca:
         self.service_name = service_name
         self.host_name = host_name
 
-    def send_nsca(self, status: int, custom_output: str = '', **kwargs):
+    def send(self, status: int, custom_output: str = '', **kwargs):
         """Send a NSCA message to a remote NSCA server.
 
         :param status: Integer describing the status
@@ -425,9 +425,9 @@ class Watch:
             from_addr=self._conf.email.from_addr,
         )
 
-        self._nsca = Nsca(config_reader=self._conf,
-                          service_name=self._service_name,
-                          host_name=self._hostname)
+        self._nsca_sender = NscaSender(config_reader=self._conf,
+                                       service_name=self._service_name,
+                                       host_name=self._hostname)
 
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""
@@ -472,8 +472,11 @@ class Watch:
 
         All `kwargs` gets render as performance data.
         """
-        message = self._nsca.send_nsca(status=status,
-                                       custom_output=custom_output, **kwargs)
+        message = self._nsca_sender.send(
+            status=status,
+            custom_output=custom_output,
+            **kwargs
+        )
         self.log.debug(message)
 
     def _stdout_stderr_reader(self, pipe, stream):

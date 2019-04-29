@@ -9,8 +9,8 @@ from jflib.command_watcher import \
     CommandWatcherError, \
     EmailMessage, \
     EmailSender, \
-    Nsca, \
     NscaMessage, \
+    NscaSender, \
     setup_logging, \
     Watch, \
     HOSTNAME, \
@@ -237,7 +237,7 @@ class TestClassNscaMessage(unittest.TestCase):
         )
 
 
-class TestClassNsca(unittest.TestCase):
+class TestClassNscaSender(unittest.TestCase):
 
     conf = ConfigReader(ini=CONF, dictionary=command_watcher.CONF_DEFAULTS)
 
@@ -254,10 +254,10 @@ class TestClassNsca(unittest.TestCase):
         )
 
     def send_nsca(self, *args, **kwargs):
-        nsca = Nsca(self.conf, 'Service', 'Host')
+        nsca = NscaSender(self.conf, 'Service', 'Host')
         with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
                 send_nsca:
-            nsca.send_nsca(*args, **kwargs)
+            nsca.send(*args, **kwargs)
         return send_nsca
 
     def test_method_send_nsca(self):
