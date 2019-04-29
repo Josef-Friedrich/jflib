@@ -459,6 +459,7 @@ class Watch:
             to_addr=self._conf.email.to_addr,
             service_name=self._service_name,
             body=self._log_handler.all_records,
+            completed_processes=self._completed_processes,
         )
         self.log.debug(message)
 

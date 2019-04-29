@@ -365,6 +365,7 @@ class TestClassWatch(unittest.TestCase):
     def test_method_send_email_with_config_reader(self):
         watch = Watch(config_file=CONF, service_name='test')
         watch.log.info('info')
+        watch.run('ls')
 
         with mock.patch('smtplib.SMTP') as SMTP:
             watch.send_email()
@@ -378,6 +379,11 @@ class TestClassWatch(unittest.TestCase):
             'from@example.com'
         )
         self.assertEqual(call_args[1], ['to@example.com'])
+
+        self.assertIn(
+            'Subject: =?utf-8?q?command=5Fwatcher=3A_test_=28ls=29?=',
+            call_args[2]
+        )
         self.assertIn(
             'From: from@example.com\nTo: to@example.com\n',
             call_args[2]
