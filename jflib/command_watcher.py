@@ -55,6 +55,9 @@ CONF_DEFAULTS = {
     },
 }
 
+HOSTNAME = socket.gethostname()
+USERNAME = pwd.getpwuid(os.getuid()).pw_name
+
 
 class CommandWatcherError(Exception):
     """Exception raiseed by this module."""
@@ -260,25 +263,24 @@ class EmailMessage:
         return ''.join(output)
 
     def __str__(self):
-        return '[Email Message] To address: {}, Subject: {}'
+        template = '[Email Message] To address: {}, Subject: {}'
+        return template.format(self.toaddr, self.subject)
 
 
 class EmailSender:
 
     def __init__(self, smtp_server: str, smtp_login: str, smtp_password: str,
-                 subject_prefix: str, from_addr: str = ''):
+                 subject_prefix: str = '', from_addr: str = ''):
         self.smtp_server = smtp_server
         self.smtp_login = smtp_login
         self.smtp_password = smtp_password
         self.subject_prefix = subject_prefix
         self.from_addr = from_addr
         if not from_addr:
-            username = pwd.getpwuid(os.getuid()).pw_name
-            hostname = socket.gethostname()
-            self.from_addr = '{0} <{1}@{0}>'.format(hostname, username)
+            self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
 
-    def send_email(self, toaddr: str, service_name: str, body: str,
-                   subject_prefix: str = '', completed_processes: list = []):
+    def send(self, toaddr: str, service_name: str, body: str,
+             subject_prefix: str = '', completed_processes: list = []):
 
         message = EmailMessage(
             toaddr=toaddr,
@@ -402,7 +404,7 @@ class Watch:
     """
     def __init__(self, config_file: str, service_name: str,
                  raise_exceptions: bool = True):
-        self._hostname = socket.gethostname()
+        self._hostname = HOSTNAME
         """The hostname of machine the watcher running on."""
 
         self._service_name = service_name

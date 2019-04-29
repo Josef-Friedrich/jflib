@@ -1,7 +1,6 @@
 import os
 import unittest
 from unittest import mock
-import socket
 
 from jflib.config_reader import ConfigReader
 from jflib.capturing import Capturing
@@ -9,12 +8,14 @@ from jflib import command_watcher
 from jflib.command_watcher import \
     CommandWatcherError, \
     EmailMessage, \
+    EmailSender, \
     Nsca, \
     NscaMessage, \
     setup_logging, \
-    Watch
+    Watch, \
+    HOSTNAME, \
+    USERNAME
 
-HOSTNAME = socket.gethostname()
 DIR_FILES = os.path.join(os.path.dirname(__file__), 'files')
 CONF = os.path.join(DIR_FILES, 'command_watcher', 'conf.ini')
 
@@ -159,6 +160,64 @@ class TestClassEmailMessageBuildSubject(unittest.TestCase):
     def test_only_service(self):
         result = self.build_subject('service')
         self.assertEqual(result, 'service')
+
+
+class TestClassEmailMessage(unittest.TestCase):
+
+    def setUp(self):
+        self.message = EmailMessage('to@example.com', 'service', 'body', '#Cw')
+
+    def test_property_toaddr(self):
+        self.assertEqual(self.message.toaddr, 'to@example.com')
+
+    def test_property_subject(self):
+        self.assertEqual(self.message.subject, '#Cw: service')
+
+    def test_property_body(self):
+        self.assertEqual(self.message.body, 'body')
+
+    def test_magic_method_str(self):
+        self.assertEqual(
+            str(self.message),
+            '[Email Message] To address: to@example.com, Subject: #Cw: service'
+        )
+
+
+class TestClassEmailSender(unittest.TestCase):
+
+    def setUp(self):
+        self.sender = EmailSender('mail.example.com:587', 'jf', '123')
+
+    def test_property_smtp_server(self):
+        self.assertEqual(self.sender.smtp_server, 'mail.example.com:587')
+
+    def test_property_smtp_login(self):
+        self.assertEqual(self.sender.smtp_login, 'jf')
+
+    def test_property_smtp_password(self):
+        self.assertEqual(self.sender.smtp_password, '123')
+
+    def test_property_subject_prefix(self):
+        self.assertEqual(self.sender.subject_prefix, '')
+
+    def test_property_from_addr(self):
+        self.assertEqual(
+            self.sender.from_addr,
+            '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
+        )
+
+    def test_method_send(self):
+        with mock.patch('jflib.command_watcher.send_email') as send_email:
+            self.sender.send('to@example.com', 'service', 'body', '#Cw')
+        send_email.assert_called_with(
+            body='body',
+            from_addr='{0} <{1}@{0}>'.format(HOSTNAME, USERNAME),
+            smtp_login='jf',
+            smtp_password='123',
+            smtp_server='mail.example.com:587',
+            subject='#Cw: service',
+            to_addr='to@example.com',
+        )
 
 
 class TestClassNscaMessage(unittest.TestCase):
