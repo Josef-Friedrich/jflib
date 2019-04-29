@@ -190,13 +190,6 @@ class LoggingHandler(BufferingHandler):
             messages.append(self.format(record))
         return '\n'.join(messages)
 
-    def send_email(self, from_addr, to_addr, subject, smtp_login,
-                   smtp_password, smtp_server):
-        return send_email(from_addr=from_addr, to_addr=to_addr,
-                          subject=subject, body=self.all_records,
-                          smtp_login=smtp_login, smtp_password=smtp_password,
-                          smtp_server=smtp_server)
-
 
 def _log_stdout(self, message, *args, **kws):
     # Yes, logger takes its '*args' as 'args'.
@@ -233,9 +226,9 @@ def setup_logging():
 
 class EmailMessage:
 
-    def __init__(self, toaddr: str, service_name: str, body: str,
+    def __init__(self, to_addr: str, service_name: str, body: str,
                  subject_prefix: str = '', completed_processes: list = []):
-        self.toaddr = toaddr
+        self.to_addr = to_addr
         self.subject = self._build_subject(service_name, subject_prefix,
                                            completed_processes)
         self.body = body
@@ -264,7 +257,7 @@ class EmailMessage:
 
     def __str__(self):
         template = '[Email Message] To address: {}, Subject: {}'
-        return template.format(self.toaddr, self.subject)
+        return template.format(self.to_addr, self.subject)
 
 
 class EmailSender:
@@ -279,26 +272,27 @@ class EmailSender:
         if not from_addr:
             self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
 
-    def send(self, toaddr: str, service_name: str, body: str,
-             subject_prefix: str = '', completed_processes: list = []):
+    def send(self, to_addr: str, service_name: str, body: str,
+             completed_processes: list = []):
 
         message = EmailMessage(
-            toaddr=toaddr,
+            to_addr=to_addr,
             service_name=service_name,
             body=body,
-            subject_prefix=subject_prefix,
+            subject_prefix=self.subject_prefix,
             completed_processes=completed_processes
         )
 
-        return send_email(
+        send_email(
             from_addr=self.from_addr,
-            to_addr=message.toaddr,
+            to_addr=message.to_addr,
             subject=message.subject,
             body=message.body,
             smtp_login=self.smtp_login,
             smtp_password=self.smtp_password,
             smtp_server=self.smtp_server
         )
+        return message
 
 
 class NscaMessage:
@@ -423,6 +417,14 @@ class Watch:
             dictionary=CONF_DEFAULTS,
         )
 
+        self._email_sender = EmailSender(
+            smtp_server=self._conf.email.smtp_server,
+            smtp_login=self._conf.email.smtp_login,
+            smtp_password=self._conf.email.smtp_password,
+            subject_prefix=self._conf.email.subject_prefix,
+            from_addr=self._conf.email.from_addr,
+        )
+
         self._nsca = Nsca(config_reader=self._conf,
                           service_name=self._service_name,
                           host_name=self._hostname)
@@ -448,32 +450,17 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def _build_email_subject(self):
-        if self._completed_processes:
-            commands = []
-            for process in self._completed_processes:
-                commands.append(' '.join(process.args))
-        return '{}: {}'.format(
-            self._conf.email.subject_prefix,
-            '; '.join(commands),
-        )
-
-    def send_email(self, subject=None, to_addr=None):
+    def send_email(self):
         """
         :param str subject: The email subject.
         :param str to_addr: The to email address.
         """
-        if not subject:
-            subject = self._build_email_subject()
-        conf = self._conf
-        return self._log_handler.send_email(
-            from_addr='{} <{}>'.format(self._hostname, conf.email.from_addr),
-            to_addr=conf.email.to_addr,
-            subject=subject,
-            smtp_login=conf.email.smtp_login,
-            smtp_password=conf.email.smtp_password,
-            smtp_server=conf.email.smtp_server,
+        message = self._email_sender.send(
+            to_addr=self._conf.email.to_addr,
+            service_name=self._service_name,
+            body=self._log_handler.all_records,
         )
+        self.log.debug(message)
 
     def send_nsca(self, status: int, custom_output: str = '', **kwargs):
         """Send a NSCA message to a remote NSCA server.

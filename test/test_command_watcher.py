@@ -167,8 +167,8 @@ class TestClassEmailMessage(unittest.TestCase):
     def setUp(self):
         self.message = EmailMessage('to@example.com', 'service', 'body', '#Cw')
 
-    def test_property_toaddr(self):
-        self.assertEqual(self.message.toaddr, 'to@example.com')
+    def test_property_to_addr(self):
+        self.assertEqual(self.message.to_addr, 'to@example.com')
 
     def test_property_subject(self):
         self.assertEqual(self.message.subject, '#Cw: service')
@@ -208,14 +208,14 @@ class TestClassEmailSender(unittest.TestCase):
 
     def test_method_send(self):
         with mock.patch('jflib.command_watcher.send_email') as send_email:
-            self.sender.send('to@example.com', 'service', 'body', '#Cw')
+            self.sender.send('to@example.com', 'service', 'body')
         send_email.assert_called_with(
             body='body',
             from_addr='{0} <{1}@{0}>'.format(HOSTNAME, USERNAME),
             smtp_login='jf',
             smtp_password='123',
             smtp_server='mail.example.com:587',
-            subject='#Cw: service',
+            subject='service',
             to_addr='to@example.com',
         )
 
@@ -367,10 +367,7 @@ class TestClassWatch(unittest.TestCase):
         watch.log.info('info')
 
         with mock.patch('smtplib.SMTP') as SMTP:
-            watch.send_email(
-                subject='Subject',
-                to_addr='to@example.com',
-            )
+            watch.send_email()
 
         SMTP.assert_called_with('smtp.example.com:587')
         server = SMTP.return_value
@@ -378,30 +375,12 @@ class TestClassWatch(unittest.TestCase):
         call_args = server.sendmail.call_args[0]
         self.assertEqual(
             call_args[0],
-            '{} <{}>'.format(HOSTNAME, 'from@example.com')
+            'from@example.com'
         )
         self.assertEqual(call_args[1], ['to@example.com'])
         self.assertIn(
-            'From: {} <{}>\nTo: to@example.com\n'
-            .format(HOSTNAME, 'from@example.com'),
+            'From: from@example.com\nTo: to@example.com\n',
             call_args[2]
-        )
-
-    def test_method_send_email_subject(self):
-        watch = Watch(config_file=CONF, service_name='test')
-        send_email = mock.Mock()
-        watch._log_handler.send_email = send_email
-        watch.run('ls')
-        watch.run(['ls', '-l'])
-
-        watch.send_email()
-        send_email.assert_called_with(
-            from_addr='{} <{}>'.format(HOSTNAME, 'from@example.com'),
-            smtp_login='Login',
-            smtp_password='Password',
-            smtp_server='smtp.example.com:587',
-            subject='command_watcher: ls; ls -l',
-            to_addr='to@example.com'
         )
 
     def test_method_send_nsca(self):
