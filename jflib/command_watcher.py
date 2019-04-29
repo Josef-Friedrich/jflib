@@ -179,6 +179,7 @@ class LoggingHandler(BufferingHandler):
 
     @property
     def all_records(self):
+        """All log messages joined by line breaks."""
         messages = []
         for record in self.buffer:
             messages.append(self.format(record))
@@ -225,6 +226,59 @@ def setup_logging():
     return (logger, handler)
 
 
+class NscaMessage:
+
+    def __init__(self, status: int, service_name: str, host_name: str,
+                 custom_text_output: str = '', **perfdata):
+        self.status = status
+        self.service_name = service_name
+        self.host_name = host_name
+        self.text_output = self._format_text_output(
+            self.status,
+            custom_text_output,
+            **perfdata,
+        )
+
+    def __str__(self):
+        template = '[NSCA Message] Status: {}, Service name: {}, ' \
+                   'Host name: {}, Text output: {}'
+        return template.format(self.status, self.service_name, self.host_name,
+                               self.text_output)
+
+    @staticmethod
+    def _performance_data(**perfdata) -> str:
+        """
+        :return: A concatenated string
+        :rtype: str
+        """
+        pairs = []
+        for key, value in perfdata.items():
+            pairs.append('{!s}={!s}'.format(key, value))
+        return ' '.join(pairs)
+
+    def _format_text_output(self, status: int, custom_text_output: str = '',
+                            **perfdata) -> str:
+        """
+        :param status: Integer describing the status
+        :param custom_text_output: Freeform text placed between the prefix
+          (SERVICE OK - ) and the performance data ( | perf_1=1)
+
+        All `perfdata` gets rendered as performance data.
+        """
+        output_perfdata = ''
+        if perfdata:
+            output_perfdata = ' | {}'.format(
+                self._performance_data(**perfdata)
+            )
+
+        output_prefix = '{} {}'.format(self.service_name.upper(),
+                                       send_nsca.States[status])
+        output_suffix = ''
+        if custom_text_output:
+            output_suffix = ' - {}'.format(custom_text_output)
+        return '{}{}{}'.format(output_prefix, output_suffix, output_perfdata)
+
+
 class Nsca:
     """Wrapper around `send_nsca` to format NSCA messages."""
 
@@ -233,38 +287,6 @@ class Nsca:
         self.conf = config_reader
         self.service_name = service_name
         self.host_name = host_name
-
-    @staticmethod
-    def _performance_data(**kwargs) -> str:
-        """
-        :return: A concatenated string
-        :rtype: str
-        """
-        pairs = []
-        for key, value in kwargs.items():
-            pairs.append('{!s}={!s}'.format(key, value))
-        return ' '.join(pairs)
-
-    def _format_text_output(self, status: int, custom_output: str = '',
-                            **kwargs) -> str:
-        """
-        :param status: Integer describing the status
-        :param custom_output: Freeform text placed between the prefix
-          (SERVICE OK - ) and the performance data ( | perf_1=1)
-
-        All `kwargs` gets rendered as performance data.
-        """
-        perfdata = ''
-        if kwargs:
-            perfdata = ' | {}'.format(self._performance_data(**kwargs))
-
-        output_prefix = '{} {}'.format(self.service_name.upper(),
-                                       send_nsca.States[status])
-        output_suffix = ''
-        if custom_output:
-            output_suffix = ' - {}'.format(custom_output)
-
-        return '{}{}{}'.format(output_prefix, output_suffix, perfdata)
 
     def send_nsca(self, status: int, custom_output: str = '', **kwargs):
         """Send a NSCA message to a remote NSCA server.
@@ -275,17 +297,24 @@ class Nsca:
 
         All `kwargs` gets rendered as performance data.
         """
-        send_nsca.send_nsca(
+        message = NscaMessage(
             status=status,
             host_name=self.host_name,
             service_name=self.service_name,
-            text_output=self._format_text_output(status, custom_output,
-                                                 **kwargs),
+            custom_text_output=custom_output,
+            **kwargs
+        )
+        send_nsca.send_nsca(
+            status=message.status,
+            host_name=message.host_name,
+            service_name=message.service_name,
+            text_output=message.text_output,
             remote_host=self.conf.nsca.remote_host,
             password=str(self.conf.nsca.password),
             encryption_method=self.conf.nsca.encryption_method,
             port=self.conf.nsca.port,
         )
+        return message
 
 
 class Watch:
@@ -380,8 +409,9 @@ class Watch:
 
         All `kwargs` gets render as performance data.
         """
-        self._nsca.send_nsca(status=status, custom_output=custom_output,
-                             **kwargs)
+        message = self._nsca.send_nsca(status=status,
+                                       custom_output=custom_output, **kwargs)
+        self.log.debug(message)
 
     def _stdout_stderr_reader(self, pipe, stream):
         """

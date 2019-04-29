@@ -9,6 +9,7 @@ from jflib import command_watcher
 from jflib.command_watcher import \
     CommandWatcherError, \
     Nsca, \
+    NscaMessage, \
     setup_logging, \
     Watch
 
@@ -136,6 +137,23 @@ class TestColorizedPrint(unittest.TestCase):
         )
 
 
+class TestClassNscaMessage(unittest.TestCase):
+
+    def test_method_perfomance_data(self):
+        self.assertEqual(
+            NscaMessage._performance_data(test=1, test_2='lol'),
+            'test=1 test_2=lol'
+        )
+
+    def test_magic_method_str(self):
+        message = NscaMessage(0, 'Service', 'Host')
+        self.assertEqual(
+            str(message),
+            '[NSCA Message] Status: 0, Service name: Service, '
+            'Host name: Host, Text output: SERVICE OK'
+        )
+
+
 class TestClassNsca(unittest.TestCase):
 
     conf = ConfigReader(ini=CONF, dictionary=command_watcher.CONF_DEFAULTS)
@@ -158,10 +176,6 @@ class TestClassNsca(unittest.TestCase):
                 send_nsca:
             nsca.send_nsca(*args, **kwargs)
         return send_nsca
-
-    def test_perfomance_data(self):
-        self.assertEqual(Nsca._performance_data(test=1, test_2='lol'),
-                         'test=1 test_2=lol')
 
     def test_method_send_nsca(self):
         send_nsca = self.send_nsca(3, 'text', perf_1=1, perf_2='lol')
@@ -321,6 +335,13 @@ class TestClassWatch(unittest.TestCase):
             service_name='Service',
             status=3,
             text_output='SERVICE UNKNOWN - text | perf_1=1 perf_2=lol'
+        )
+        log = 'DEBUG [NSCA Message] Status: 3, Service name: Service, ' \
+              'Host name: {}, Text output: SERVICE UNKNOWN - text' \
+              ' | perf_1=1 perf_2=lol'
+        self.assertIn(
+            log.format(HOSTNAME),
+            watch._log_handler.all_records
         )
 
     def test_exception(self):
