@@ -226,6 +226,7 @@ def setup_logging():
 
 
 class Nsca:
+    """Wrapper around `send_nsca` to format NSCA messages."""
 
     def __init__(self, config_reader: ConfigReader, service_name: str,
                  host_name: str):
@@ -246,6 +247,13 @@ class Nsca:
 
     def _format_text_output(self, status: int, custom_output: str = '',
                             **kwargs) -> str:
+        """
+        :param status: Integer describing the status
+        :param custom_output: Freeform text placed between the prefix
+          (SERVICE OK - ) and the performance data ( | perf_1=1)
+
+        All `kwargs` gets rendered as performance data.
+        """
         perfdata = ''
         if kwargs:
             perfdata = ' | {}'.format(self._performance_data(**kwargs))
@@ -263,9 +271,9 @@ class Nsca:
 
         :param status: Integer describing the status
         :param custom_output: Freeform text placed between the prefix
-         (SERVICE OK - ) and the performance data ( | perf_1=1)
+          (SERVICE OK - ) and the performance data ( | perf_1=1)
 
-        All `kwargs` gets render as performance data.
+        All `kwargs` gets rendered as performance data.
         """
         send_nsca.send_nsca(
             status=status,

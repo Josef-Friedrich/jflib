@@ -140,41 +140,49 @@ class TestClassNsca(unittest.TestCase):
 
     conf = ConfigReader(ini=CONF, dictionary=command_watcher.CONF_DEFAULTS)
 
+    def assert_called_with(self, mock, status, text_output):
+        mock.assert_called_with(
+            encryption_method=1,
+            host_name='Host',
+            password='1234',
+            port=5667,
+            remote_host='1.2.3.4',
+            service_name='Service',
+            status=status,
+            text_output=text_output,
+        )
+
+    def send_nsca(self, *args, **kwargs):
+        nsca = Nsca(self.conf, 'Service', 'Host')
+        with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
+                send_nsca:
+            nsca.send_nsca(*args, **kwargs)
+        return send_nsca
+
     def test_perfomance_data(self):
         self.assertEqual(Nsca._performance_data(test=1, test_2='lol'),
                          'test=1 test_2=lol')
 
     def test_method_send_nsca(self):
-        nsca = Nsca(self.conf, 'Service', 'Host')
-        with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
-                send_nsca:
-            nsca.send_nsca(3, 'text', perf_1=1, perf_2='lol')
-        send_nsca.assert_called_with(
-            encryption_method=1,
-            host_name='Host',
-            password='1234',
-            port=5667,
-            remote_host='1.2.3.4',
-            service_name='Service',
-            status=3,
-            text_output='SERVICE UNKNOWN - text | perf_1=1 perf_2=lol'
-        )
+        send_nsca = self.send_nsca(3, 'text', perf_1=1, perf_2='lol')
+        self.assert_called_with(send_nsca, 3,
+                                'SERVICE UNKNOWN - text | perf_1=1 perf_2=lol')
+
+    def test_method_send_nsca_kwargs(self):
+        send_nsca = self.send_nsca(status=3, custom_output='text', perf_1=1,
+                                   perf_2='lol')
+        self.assert_called_with(send_nsca, 3,
+                                'SERVICE UNKNOWN - text | perf_1=1 perf_2=lol')
 
     def test_method_send_nsca_without_custom_output(self):
-        nsca = Nsca(self.conf, 'Service', 'Host')
-        with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
-                send_nsca:
-            nsca.send_nsca(0,  perf_1=1, perf_2='lol')
-        send_nsca.assert_called_with(
-            encryption_method=1,
-            host_name='Host',
-            password='1234',
-            port=5667,
-            remote_host='1.2.3.4',
-            service_name='Service',
-            status=0,
-            text_output='SERVICE OK | perf_1=1 perf_2=lol'
-        )
+        send_nsca = self.send_nsca(0,  perf_1=1, perf_2='lol')
+        self.assert_called_with(send_nsca, 0,
+                                'SERVICE OK | perf_1=1 perf_2=lol')
+
+    def test_method_send_nsca_without_custom_output_kwargs(self):
+        send_nsca = self.send_nsca(status=0,  perf_1=1, perf_2='lol')
+        self.assert_called_with(send_nsca, 0,
+                                'SERVICE OK | perf_1=1 perf_2=lol')
 
 
 class TestClassWatch(unittest.TestCase):
