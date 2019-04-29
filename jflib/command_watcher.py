@@ -272,6 +272,12 @@ class EmailSender:
         if not from_addr:
             self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
 
+    def __str__(self):
+        template = '[Email sender] SMTP server {}, SMTP login: {}, ' \
+                   'Subject_prefix {}, From address: {}'
+        return template.format(self.smtp_server, self.smtp_login,
+                               self.subject_prefix, self.from_addr)
+
     def send(self, to_addr: str, service_name: str, body: str,
              completed_processes: list = []):
 
@@ -361,6 +367,12 @@ class NscaSender:
         self.service_name = service_name
         self.host_name = host_name
 
+    def __str__(self):
+        template = '[NSCA Sender] Remote host: {}, Encryption method: {}, ' \
+                   'Port: {}, Service name: {}, Host name: {}'
+        return template.format(self.remote_host, self.encryption_method,
+                               self.port, self.service_name, self.host_name)
+
     def send(self, status: int, custom_output: str = '', **kwargs):
         """Send a NSCA message to a remote NSCA server.
 
@@ -428,6 +440,7 @@ class Watch:
             subject_prefix=self._conf.email.subject_prefix,
             from_addr=self._conf.email.from_addr,
         )
+        self.log.debug(self._email_sender)
 
         self._nsca_sender = NscaSender(
             remote_host=self._conf.nsca.remote_host,
@@ -437,6 +450,7 @@ class Watch:
             service_name=self._service_name,
             host_name=self._hostname,
         )
+        self.log.debug(self._nsca_sender)
 
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""

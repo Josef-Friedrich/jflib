@@ -16,6 +16,7 @@ from jflib.command_watcher import \
 
 DIR_FILES = os.path.join(os.path.dirname(__file__), 'files')
 CONF = os.path.join(DIR_FILES, 'command_watcher', 'conf.ini')
+FROM_ADDR = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
 
 
 class TestLogging(unittest.TestCase):
@@ -201,7 +202,14 @@ class TestClassEmailSender(unittest.TestCase):
     def test_property_from_addr(self):
         self.assertEqual(
             self.sender.from_addr,
-            '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
+            FROM_ADDR
+        )
+
+    def test_magic_method_str(self):
+        self.assertEqual(
+            str(self.sender),
+            '[Email sender] SMTP server mail.example.com:587, SMTP login: '
+            'jf, Subject_prefix , From address: {}'.format(FROM_ADDR)
         )
 
     def test_method_send(self):
@@ -209,7 +217,7 @@ class TestClassEmailSender(unittest.TestCase):
             self.sender.send('to@example.com', 'service', 'body')
         send_email.assert_called_with(
             body='body',
-            from_addr='{0} <{1}@{0}>'.format(HOSTNAME, USERNAME),
+            from_addr=FROM_ADDR,
             smtp_login='jf',
             smtp_password='123',
             smtp_server='mail.example.com:587',
@@ -237,6 +245,9 @@ class TestClassNscaMessage(unittest.TestCase):
 
 class TestClassNscaSender(unittest.TestCase):
 
+    def setUp(self):
+        self.nsca = NscaSender('1.2.3.4', '1234', 1, 5667, 'Service', 'Host')
+
     def assert_called_with(self, mock, status, text_output):
         mock.assert_called_with(
             encryption_method=1,
@@ -250,11 +261,35 @@ class TestClassNscaSender(unittest.TestCase):
         )
 
     def send_nsca(self, *args, **kwargs):
-        nsca = NscaSender('1.2.3.4', '1234', 1, 5667, 'Service', 'Host')
         with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
                 send_nsca:
-            nsca.send(*args, **kwargs)
+            self.nsca.send(*args, **kwargs)
         return send_nsca
+
+    def test_property_remote_host(self):
+        self.assertEqual(self.nsca.remote_host, '1.2.3.4')
+
+    def test_property_password(self):
+        self.assertEqual(self.nsca.password, '1234')
+
+    def test_property_encryption_method(self):
+        self.assertEqual(self.nsca.encryption_method, 1)
+
+    def test_property_port(self):
+        self.assertEqual(self.nsca.port, 5667)
+
+    def test_property_service_name(self):
+        self.assertEqual(self.nsca.service_name, 'Service')
+
+    def test_property_host_name(self):
+        self.assertEqual(self.nsca.host_name, 'Host')
+
+    def test_magic_method_str(self):
+        self.assertEqual(
+            str(self.nsca),
+            '[NSCA Sender] Remote host: 1.2.3.4, Encryption method: 1, '
+            'Port: 5667, Service name: Service, Host name: Host'
+        )
 
     def test_method_send_nsca(self):
         send_nsca = self.send_nsca(3, 'text', perf_1=1, perf_2='lol')
@@ -313,7 +348,7 @@ class TestClassWatch(unittest.TestCase):
                       raise_exceptions=False)
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
-        self.assertEqual(len(watch._log_handler.buffer), 7)
+        self.assertEqual(len(watch._log_handler.buffer), 9)
         self.assertIn('Hostname: ', watch._log_handler.all_records)
 
     def test_method_run_kwargs(self):
