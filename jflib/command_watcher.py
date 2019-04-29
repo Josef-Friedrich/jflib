@@ -15,12 +15,14 @@ Module to watch the execution of shell scripts. Both streams (`stdout` and
 
 from logging.handlers import BufferingHandler
 import logging
+import os
+import pwd
 import queue
 import shlex
+import socket
 import subprocess
 import sys
 import threading
-import socket
 import time
 import uuid
 
@@ -224,6 +226,77 @@ def setup_logging():
     logger.setLevel(1)
     logger.addHandler(handler)
     return (logger, handler)
+
+
+class EmailMessage:
+
+    def __init__(self, toaddr: str, service_name: str, body: str,
+                 subject_prefix: str = '', completed_processes: list = []):
+        self.toaddr = toaddr
+        self.subject = self._build_subject(service_name, subject_prefix,
+                                           completed_processes)
+        self.body = body
+
+    @staticmethod
+    def _build_subject(service_name: str, subject_prefix: str = '',
+                       completed_processes: list = []):
+        output = []
+
+        # subject_prefix
+        if subject_prefix:
+            output.append('{}: '.format(subject_prefix))
+
+        # service_name
+        output.append(service_name)
+
+        # commands
+        commands = []
+        if completed_processes:
+            for process in completed_processes:
+                commands.append(' '.join(process.args))
+        if commands:
+            output.append(' ({})'.format('; '.join(commands)))
+
+        return ''.join(output)
+
+    def __str__(self):
+        return '[Email Message] To address: {}, Subject: {}'
+
+
+class EmailSender:
+
+    def __init__(self, smtp_server: str, smtp_login: str, smtp_password: str,
+                 subject_prefix: str, from_addr: str = ''):
+        self.smtp_server = smtp_server
+        self.smtp_login = smtp_login
+        self.smtp_password = smtp_password
+        self.subject_prefix = subject_prefix
+        self.from_addr = from_addr
+        if not from_addr:
+            username = pwd.getpwuid(os.getuid()).pw_name
+            hostname = socket.gethostname()
+            self.from_addr = '{0} <{1}@{0}>'.format(hostname, username)
+
+    def send_email(self, toaddr: str, service_name: str, body: str,
+                   subject_prefix: str = '', completed_processes: list = []):
+
+        message = EmailMessage(
+            toaddr=toaddr,
+            service_name=service_name,
+            body=body,
+            subject_prefix=subject_prefix,
+            completed_processes=completed_processes
+        )
+
+        return send_email(
+            from_addr=self.from_addr,
+            to_addr=message.toaddr,
+            subject=message.subject,
+            body=message.body,
+            smtp_login=self.smtp_login,
+            smtp_password=self.smtp_password,
+            smtp_server=self.smtp_server
+        )
 
 
 class NscaMessage:

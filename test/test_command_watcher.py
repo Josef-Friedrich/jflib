@@ -8,6 +8,7 @@ from jflib.capturing import Capturing
 from jflib import command_watcher
 from jflib.command_watcher import \
     CommandWatcherError, \
+    EmailMessage, \
     Nsca, \
     NscaMessage, \
     setup_logging, \
@@ -135,6 +136,29 @@ class TestColorizedPrint(unittest.TestCase):
             output[0][20:],
             '\x1b[7m\x1b[30m Level 1  \x1b[0m \x1b[30mNOTSET 0\x1b[0m'
         )
+
+
+class TestClassEmailMessageBuildSubject(unittest.TestCase):
+
+    def build_subject(self, service_name, subject_prefix='',
+                      completed_processes=[]):
+        mocked_processes = []
+        for args in completed_processes:
+            mocked_processes.append(mock.Mock(args=args))
+        return EmailMessage._build_subject(service_name, subject_prefix,
+                                           mocked_processes)
+
+    def test_all_args(self):
+        result = self.build_subject('service', '#CW', (['ls'], ['ls', '-l']))
+        self.assertEqual(result, '#CW: service (ls; ls -l)')
+
+    def test_without_completed_processes(self):
+        result = self.build_subject('service', '#CW')
+        self.assertEqual(result, '#CW: service')
+
+    def test_only_service(self):
+        result = self.build_subject('service')
+        self.assertEqual(result, 'service')
 
 
 class TestClassNscaMessage(unittest.TestCase):
