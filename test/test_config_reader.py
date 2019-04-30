@@ -57,7 +57,12 @@ class TestFunctionValidateKey(unittest.TestCase):
 
 class TestClassArgparse(unittest.TestCase):
 
-    def test_method_get(self):
+    def test_method_get_without_mapping(self):
+        argparse = Argparse(args=args)
+        self.assertEqual(argparse.get('Classical', 'name'), 'Mozart')
+        self.assertEqual(argparse.get('Baroque', 'name'), 'Bach')
+
+    def test_method_get_with_mapping(self):
         argparse = Argparse(
             args=args,
             mapping={

@@ -68,13 +68,19 @@ class ReaderBase:
 
 
 class Argparse(ReaderBase):
-    """
+    """This class tries to read configuration values from a `argparse`
+    namespace object. This works fine if your section is one word long
+    (`--section-key` = `args.section_key` = `section` + `key`) and not more
+    than one word long (`--my-section-key` = `args.my_section_key` = `my` +
+    `section_key`). By multi word section you have to specify a mapping
+    (`{'my_section.key': 'my_section_key'}`). Without a mapping all sections
+    and keys are convert into lowercase (`Section` = `section`).
+
     :param args: The parsed `argparse` object.
     :param mapping: A dictionary like this one: `{'section.key': 'dest'}`.
-      `dest` are the propertiy name of the `args` object.
+      `dest` is the property name of the `args` object.
     """
-
-    def __init__(self, args: argparse.Namespace, mapping: dict):
+    def __init__(self, args: argparse.Namespace, mapping: dict = {}):
         self._args = args
         self._mapping = mapping
 
@@ -88,17 +94,17 @@ class Argparse(ReaderBase):
         :return: The configuration value stored under a section and a key.
         """
         mapping_key = '{}.{}'.format(section, key)
-        try:
+        if mapping_key in self._mapping:
             argparse_dest = self._mapping[mapping_key]
-        except KeyError:
-            msg = 'Mapping key “{}” for an argparse destination not found.'
-            self._exception(msg.format(mapping_key))
-        try:
+        else:
+            argparse_dest = '{}_{}'.format(section, key).lower()
+
+        if hasattr(self._args, argparse_dest):
             return getattr(self._args, argparse_dest)
-        except AttributeError:
-            self._exception('Configuration value could not be found by '
-                            'Argparse (section “{}” key “{}”).'
-                            .format(section, key))
+
+        self._exception('Configuration value could not be found by '
+                        'Argparse (section “{}” key “{}”).'
+                        .format(section, key))
 
 
 class Dictionary(ReaderBase):
