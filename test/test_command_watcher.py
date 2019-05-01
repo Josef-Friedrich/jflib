@@ -217,8 +217,8 @@ class TestClassEmailSender(unittest.TestCase):
     def test_magic_method_str(self):
         self.assertEqual(
             str(self.sender),
-            '[Email sender] SMTP server mail.example.com:587, SMTP login: '
-            'jf, Subject_prefix , From address: {}'.format(FROM_ADDR)
+            '[Email Sender] SMTP server: mail.example.com:587, SMTP login: '
+            'jf, Subject_prefix: , From address: {}'.format(FROM_ADDR)
         )
 
     def test_method_send(self):

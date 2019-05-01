@@ -275,8 +275,8 @@ class EmailSender:
             self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
 
     def __str__(self):
-        template = '[Email sender] SMTP server {}, SMTP login: {}, ' \
-                   'Subject_prefix {}, From address: {}'
+        template = '[Email Sender] SMTP server: {}, SMTP login: {}, ' \
+                   'Subject_prefix: {}, From address: {}'
         return template.format(self.smtp_server, self.smtp_login,
                                self.subject_prefix, self.from_addr)
 
