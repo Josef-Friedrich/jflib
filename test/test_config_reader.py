@@ -1,6 +1,8 @@
 import os
 import unittest
 import argparse
+import tempfile
+
 from jflib.config_reader import \
     Argparse, \
     ConfigReader, \
@@ -155,6 +157,14 @@ class TestClassIni(unittest.TestCase):
             'Configuration value could not be found (section “lol” key '
             '“lol”).',
         )
+
+    def test_non_existent_ini_file(self):
+        tmp_path = tempfile.mkdtemp()
+        non_existent = os.path.join(tmp_path, 'xxx')
+        ini = Ini(path=non_existent)
+        with self.assertRaises(ConfigValueError):
+            ini.get('lol', 'lol')
+
 
 # Common code #################################################################
 
