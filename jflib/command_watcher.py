@@ -433,6 +433,8 @@ class Watch:
         self._log_handler = log_handler
         """An instance of :py:class:`LoggingHandler`."""
 
+        self._conf = None
+        """An instance of :py:class:`jflib.config_reader.ConfigReader`."""
         if config_reader:
             self._conf = config_reader
         else:
@@ -448,6 +450,7 @@ class Watch:
             subject_prefix=self._conf.email.subject_prefix,
             from_addr=self._conf.email.from_addr,
         )
+        """An instance of :py:class:`EmailSender`."""
         self.log.debug(self._email_sender)
 
         self._nsca_sender = NscaSender(
@@ -458,6 +461,7 @@ class Watch:
             service_name=self._service_name,
             host_name=self._hostname,
         )
+        """An instance of :py:class:`NscaSender`."""
         self.log.debug(self._nsca_sender)
 
         self._queue = queue.Queue()

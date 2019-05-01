@@ -33,8 +33,6 @@ INI file (`ini`):
     [section]
     key = value
 
-
-
 """
 import ast
 import os
@@ -47,7 +45,7 @@ class ConfigValueError(Exception):
     """Configuration value can’t be found."""
 
 
-def validate_key(key: str):
+def validate_key(key: str) -> bool:
     """:param key: Validate the name of a section or a key."""
     if re.match(r'^[a-zA-Z0-9_]+$', key):
         return True
@@ -230,7 +228,7 @@ class Value:
         return self._auto_type(self._reader.get(self._section, name))
 
 
-def load_readers_by_keyword(**kwargs):
+def load_readers_by_keyword(**kwargs) -> list:
     """Available readers: `argparse`, `dictionary`, `environ`, `ini`.
 
     The arguments of this class have to be specified as keyword arguments.
