@@ -435,14 +435,15 @@ class Watch:
         """An instance of :py:class:`LoggingHandler`."""
 
         self._conf = None
-        """An instance of :py:class:`jflib.config_reader.ConfigReader`."""
-        if config_reader:
-            self._conf = config_reader
-        elif config_file:
-            self._conf = ConfigReader(
+        """An instance of :py:class:`jflib.config_reader.ClassInterface`."""
+
+        if not config_reader and config_file:
+            config_reader = ConfigReader(
                 ini=config_file,
                 dictionary=CONF_DEFAULTS,
             )
+
+        self._conf = config_reader.get_class_interface()
 
         self._email_sender = EmailSender(
             smtp_server=self._conf.email.smtp_server,

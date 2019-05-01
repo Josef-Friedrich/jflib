@@ -255,48 +255,53 @@ class TestClassConfigReader(unittest.TestCase):
         del os.environ['YYY__specific__environ']
 
     def test_argparse_first(self):
-        config = ConfigReader(
+        config_reader = ConfigReader(
             argparse=self.argparse,
             dictionary=self.dictionary,
             environ=self.environ,
             ini=self.ini,
         )
+        config = config_reader.get_class_interface()
         self.assertEqual(config.common.key, 'argparse')
 
     def test_dictionary_first(self):
-        config = ConfigReader(
+        config_reader = ConfigReader(
             dictionary=self.dictionary,
             argparse=self.argparse,
             environ=self.environ,
             ini=self.ini,
         )
+        config = config_reader.get_class_interface()
         self.assertEqual(config.common.key, 'dictionary')
 
     def test_environ_first(self):
-        config = ConfigReader(
+        config_reader = ConfigReader(
             environ=self.environ,
             argparse=self.argparse,
             dictionary=self.dictionary,
             ini=self.ini,
         )
+        config = config_reader.get_class_interface()
         self.assertEqual(config.common.key, 'environ')
 
     def test_ini_first(self):
-        config = ConfigReader(
+        config_reader = ConfigReader(
             ini=self.ini,
             argparse=self.argparse,
             dictionary=self.dictionary,
             environ=self.environ,
         )
+        config = config_reader.get_class_interface()
         self.assertEqual(config.common.key, 'ini')
 
     def test_specifiy_values(self):
-        config = ConfigReader(
+        config_reader = ConfigReader(
             argparse=self.argparse,
             dictionary=self.dictionary,
             environ=self.environ,
             ini=self.ini,
         )
+        config = config_reader.get_class_interface()
         self.assertEqual(config.specific.argparse, 'argparse')
         self.assertEqual(config.specific.dictionary, 'dictionary')
         self.assertEqual(config.specific.environ, 'environ')
@@ -332,7 +337,8 @@ class TestClassConfigReader(unittest.TestCase):
 class TestTypes(unittest.TestCase):
 
     def setUp(self):
-        self.config = ConfigReader(ini=os.path.join(FILES_DIR, 'types.ini'))
+        config_reader = ConfigReader(ini=os.path.join(FILES_DIR, 'types.ini'))
+        self.config = config_reader.get_class_interface()
 
     def test_int(self):
         self.assertEqual(self.config.types.int, 1)
