@@ -416,7 +416,8 @@ class Watch:
     :param config_reader: A custom configuration reader. Specify this
       parameter to not use the build in configuration reader.
     """
-    def __init__(self, config_file: str, service_name: str,
+    def __init__(self, config_file: str = None,
+                 service_name: str = 'command_watcher',
                  raise_exceptions: bool = True,
                  config_reader: ConfigReader = None):
         self._hostname = HOSTNAME
@@ -437,7 +438,7 @@ class Watch:
         """An instance of :py:class:`jflib.config_reader.ConfigReader`."""
         if config_reader:
             self._conf = config_reader
-        else:
+        elif config_file:
             self._conf = ConfigReader(
                 ini=config_file,
                 dictionary=CONF_DEFAULTS,

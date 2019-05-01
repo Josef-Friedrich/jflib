@@ -3,6 +3,7 @@ import unittest
 import argparse
 import tempfile
 
+from jflib import config_reader
 from jflib.config_reader import \
     Argparse, \
     ConfigReader, \
@@ -150,10 +151,10 @@ class TestClassIni(unittest.TestCase):
 
     def test_exception(self):
         ini = Ini(path=INI_FILE)
-        with self.assertRaises(ConfigValueError) as cm:
+        with self.assertRaises(ConfigValueError) as context:
             ini.get('lol', 'lol')
         self.assertEqual(
-            str(cm.exception),
+            str(context.exception),
             'Configuration value could not be found (section “lol” key '
             '“lol”).',
         )
@@ -161,9 +162,20 @@ class TestClassIni(unittest.TestCase):
     def test_non_existent_ini_file(self):
         tmp_path = tempfile.mkdtemp()
         non_existent = os.path.join(tmp_path, 'xxx')
-        ini = Ini(path=non_existent)
-        with self.assertRaises(ConfigValueError):
-            ini.get('lol', 'lol')
+        with self.assertRaises(config_reader.IniReaderError):
+            Ini(path=non_existent)
+
+    def test_none(self):
+        with self.assertRaises(config_reader.IniReaderError):
+            Ini(path=None)
+
+    def test_false(self):
+        with self.assertRaises(config_reader.IniReaderError):
+            Ini(path=False)
+
+    def test_emtpy_string(self):
+        with self.assertRaises(config_reader.IniReaderError):
+            Ini(path='')
 
 
 # Common code #################################################################

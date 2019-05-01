@@ -45,6 +45,10 @@ class ConfigValueError(Exception):
     """Configuration value can’t be found."""
 
 
+class IniReaderError(Exception):
+    """Ini file not valid."""
+
+
 def validate_key(key: str) -> bool:
     """:param key: Validate the name of a section or a key."""
     if re.match(r'^[a-zA-Z0-9_]+$', key):
@@ -166,7 +170,12 @@ class Ini(ReaderBase):
     """
     def __init__(self, path: str):
         self._config = configparser.ConfigParser()
-        self._config.read(path)
+        if not path or not os.path.exists(path):
+            raise IniReaderError(
+                'Ini configuration path “{}” couldn’t be opened.'
+                .format(path)
+            )
+        self._config.read_file(open(path))
 
     def get(self, section: str, key: str):
         """
