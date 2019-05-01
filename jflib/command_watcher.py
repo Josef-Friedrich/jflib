@@ -240,7 +240,7 @@ class EmailMessage:
 
         # subject_prefix
         if subject_prefix:
-            output.append('{}: '.format(subject_prefix))
+            output.append('{}:'.format(subject_prefix))
 
         # service_name
         output.append(service_name)
@@ -251,9 +251,11 @@ class EmailMessage:
             for process in completed_processes:
                 commands.append(' '.join(process.args))
         if commands:
-            output.append(' ({})'.format('; '.join(commands)))
+            output.append('({})'.format('; '.join(commands)))
 
-        return ''.join(output)
+        output.append('[user:{}]'.format(USERNAME))
+
+        return ' '.join(output)
 
     def __str__(self):
         template = '[Email Message] To address: {}, Subject: {}'
