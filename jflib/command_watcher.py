@@ -411,9 +411,12 @@ class Watch:
     :param service_name: A name of the watched service.
     :param raise_exceptions: Raise exceptions if `watch.run()` exists with a
       non-zero exit code.
+    :param config_reader: A custom configuration reader. Specify this
+      parameter to not use the build in configuration reader.
     """
     def __init__(self, config_file: str, service_name: str,
-                 raise_exceptions: bool = True):
+                 raise_exceptions: bool = True,
+                 config_reader: ConfigReader = None):
         self._hostname = HOSTNAME
         """The hostname of machine the watcher running on."""
 
@@ -428,10 +431,13 @@ class Watch:
         self._log_handler = log_handler
         """An instance of :py:class:`LoggingHandler`."""
 
-        self._conf = ConfigReader(
-            ini=config_file,
-            dictionary=CONF_DEFAULTS,
-        )
+        if config_reader:
+            self._conf = config_reader
+        else:
+            self._conf = ConfigReader(
+                ini=config_file,
+                dictionary=CONF_DEFAULTS,
+            )
 
         self._email_sender = EmailSender(
             smtp_server=self._conf.email.smtp_server,
