@@ -302,6 +302,32 @@ class TestClassConfigReader(unittest.TestCase):
         self.assertEqual(config.specific.environ, 'environ')
         self.assertEqual(config.specific.ini, 'ini')
 
+    def test_method_get_class_interface(self):
+        config_reader = ConfigReader(
+            argparse=self.argparse,
+            dictionary=self.dictionary,
+            environ=self.environ,
+            ini=self.ini,
+        )
+        config = config_reader.get_class_interface()
+        self.assertEqual(config.specific.argparse, 'argparse')
+        self.assertEqual(config.specific.dictionary, 'dictionary')
+        self.assertEqual(config.specific.environ, 'environ')
+        self.assertEqual(config.specific.ini, 'ini')
+
+    def test_method_get_dictionary_interface(self):
+        config_reader = ConfigReader(
+            argparse=self.argparse,
+            dictionary=self.dictionary,
+            environ=self.environ,
+            ini=self.ini,
+        )
+        config = config_reader.get_dictionary_interface()
+        self.assertEqual(config['specific']['argparse'], 'argparse')
+        self.assertEqual(config['specific']['dictionary'], 'dictionary')
+        self.assertEqual(config['specific']['environ'], 'environ')
+        self.assertEqual(config['specific']['ini'], 'ini')
+
 
 class TestTypes(unittest.TestCase):
 
