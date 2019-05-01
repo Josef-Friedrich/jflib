@@ -74,7 +74,7 @@ class ReaderBase(object, metaclass=abc.ABCMeta):
         raise NotImplementedError('A reader class must have a `get` method.')
 
 
-class Argparse(ReaderBase):
+class ArgparseReader(ReaderBase):
     """This class tries to read configuration values from a `argparse`
     namespace object. This works fine if your section is one word long
     (`--section-key` = `args.section_key` = `section` + `key`) and not more
@@ -114,7 +114,7 @@ class Argparse(ReaderBase):
                         .format(section, key))
 
 
-class Dictionary(ReaderBase):
+class DictionaryReader(ReaderBase):
     """Useful for default values.
 
     :param dictionary: A nested dictionary.
@@ -140,7 +140,7 @@ class Dictionary(ReaderBase):
             )
 
 
-class Environ(ReaderBase):
+class EnvironReader(ReaderBase):
     """Read configuration values from environment variables. The name
     of the environment variables have to be in the form `prefix__section__key`.
     Note the two following underscores.
@@ -168,7 +168,7 @@ class Environ(ReaderBase):
         self._exception('Environment variable not found: {}'.format(key))
 
 
-class Ini(ReaderBase):
+class IniReader(ReaderBase):
     """Read configuration files from text files in the INI format.
 
     :param path: The path of the INI file.
@@ -199,16 +199,24 @@ class Ini(ReaderBase):
 # Common code #################################################################
 
 
-class Reader:
+class ReaderSelector:
+    """Select for each get request which reader to use."""
 
     def __init__(self, *readers):
         self.readers = readers
+        """A list of readers."""
 
     @staticmethod
     def _validate_key(key):
         return validate_key(key)
 
-    def get(self, section, key):
+    def get(self, section: str, key: str):
+        """
+        Get a configuration value stored under a section and a key.
+
+        :param section: Name of the section.
+        :param key: Name of the key.
+        """
         self._validate_key(section)
         self._validate_key(key)
         for reader in self.readers:
@@ -291,13 +299,13 @@ def load_readers_by_keyword(**kwargs) -> list:
     readers = []
     for keyword, value in kwargs.items():
         if keyword == 'argparse':
-            readers.append(Argparse(args=value[0], mapping=value[1]))
+            readers.append(ArgparseReader(args=value[0], mapping=value[1]))
         elif keyword == 'dictionary':
-            readers.append(Dictionary(dictionary=value))
+            readers.append(DictionaryReader(dictionary=value))
         elif keyword == 'environ':
-            readers.append(Environ(prefix=value))
+            readers.append(EnvironReader(prefix=value))
         elif keyword == 'ini':
-            readers.append(Ini(path=value))
+            readers.append(IniReader(path=value))
     return readers
 
 
@@ -338,8 +346,8 @@ class ConfigReader(object):
         """The specification dictionary. For more informations look at the
         class arguments of this class."""
 
-        self.reader = Reader(*readers)
-        """:py:class:`Reader`"""
+        self.reader = ReaderSelector(*readers)
+        """:py:class:`ReaderSelector`"""
 
     def get_class_interface(self) -> ClassInterface:
         return ClassInterface(self.reader)
@@ -354,7 +362,6 @@ class ConfigReader(object):
           read by the readers.
         :raises ValueError: If `not_empty` is true and value is empty.
         :raises KeyError: By an unspecify section
-
         """
         for key, value_spec in self.spec[section].items():
             value = self.reader.get(section, key)

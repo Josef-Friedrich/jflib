@@ -5,14 +5,14 @@ import tempfile
 
 from jflib import config_reader
 from jflib.config_reader import \
-    Argparse, \
+    ArgparseReader, \
     ConfigReader, \
     ConfigValueError, \
-    Dictionary, \
-    Environ, \
-    Ini, \
+    DictionaryReader, \
+    EnvironReader, \
+    IniReader, \
     load_readers_by_keyword, \
-    Reader, \
+    ReaderSelector, \
     ReaderBase, \
     validate_key
 
@@ -72,15 +72,15 @@ class TestClassReaderBase(unittest.TestCase):
             FalseReader()  # pylint: disable=abstract-class-instantiated
 
 
-class TestClassArgparse(unittest.TestCase):
+class TestClassArgparseReader(unittest.TestCase):
 
     def test_method_get_without_mapping(self):
-        argparse = Argparse(args=args)
+        argparse = ArgparseReader(args=args)
         self.assertEqual(argparse.get('Classical', 'name'), 'Mozart')
         self.assertEqual(argparse.get('Baroque', 'name'), 'Bach')
 
     def test_method_get_with_mapping(self):
-        argparse = Argparse(
+        argparse = ArgparseReader(
             args=args,
             mapping={
                 'Classical.name': 'classical_name',
@@ -90,7 +90,7 @@ class TestClassArgparse(unittest.TestCase):
         self.assertEqual(argparse.get('Baroque', 'name'), 'Bach')
 
     def test_exception(self):
-        argparse = Argparse(
+        argparse = ArgparseReader(
             args=args,
             mapping={
                 'Classical.name': 'classical_name',
@@ -105,31 +105,31 @@ class TestClassArgparse(unittest.TestCase):
             argparse.get('Modern', 'name')
 
 
-class TestClassDictionary(unittest.TestCase):
+class TestClassDictionaryReader(unittest.TestCase):
 
     dictionary = {'Classical': {'name': 'Mozart'}}
 
     def test_method_get(self):
-        dictionary = Dictionary(dictionary=self.dictionary)
+        dictionary = DictionaryReader(dictionary=self.dictionary)
         self.assertEqual(dictionary.get('Classical', 'name'), 'Mozart')
 
     def test_exception(self):
-        dictionary = Dictionary(dictionary=self.dictionary)
+        dictionary = DictionaryReader(dictionary=self.dictionary)
         with self.assertRaises(ConfigValueError):
             dictionary.get('Romantic', 'name')
 
 
-class TestClassEnviron(unittest.TestCase):
+class TestClassEnvironReader(unittest.TestCase):
 
     def test_method_get(self):
         os.environ['AAA__bridge__ip'] = '1.2.3.4'
         os.environ['AAA__bridge__username'] = 'test'
-        environ = Environ(prefix='AAA')
+        environ = EnvironReader(prefix='AAA')
         self.assertEqual(environ.get('bridge', 'ip'), '1.2.3.4')
         self.assertEqual(environ.get('bridge', 'username'), 'test')
 
     def test_exception(self):
-        environ = Environ(prefix='AAA')
+        environ = EnvironReader(prefix='AAA')
         with self.assertRaises(ConfigValueError) as cm:
             environ.get('lol', 'lol')
         self.assertEqual(
@@ -142,12 +142,12 @@ class TestClassEnvironWithoutPrefix(unittest.TestCase):
 
     def test_method_get(self):
         os.environ['Avantgarde__name'] = 'Stockhausen'
-        environ = Environ()
+        environ = EnvironReader()
         self.assertEqual(environ.get('Avantgarde', 'name'), 'Stockhausen')
         del os.environ['Avantgarde__name']
 
     def test_exception(self):
-        environ = Environ()
+        environ = EnvironReader()
         with self.assertRaises(ConfigValueError) as cm:
             environ.get('xxxAvantgarde', 'xxxname')
         self.assertEqual(
@@ -156,15 +156,15 @@ class TestClassEnvironWithoutPrefix(unittest.TestCase):
         )
 
 
-class TestClassIni(unittest.TestCase):
+class TestClassIniReader(unittest.TestCase):
 
     def test_method_get(self):
-        ini = Ini(path=INI_FILE)
+        ini = IniReader(path=INI_FILE)
         self.assertEqual(ini.get('Classical', 'name'), 'Mozart')
         self.assertEqual(ini.get('Romantic', 'name'), 'Schumann')
 
     def test_exception(self):
-        ini = Ini(path=INI_FILE)
+        ini = IniReader(path=INI_FILE)
         with self.assertRaises(ConfigValueError) as context:
             ini.get('lol', 'lol')
         self.assertEqual(
@@ -177,36 +177,37 @@ class TestClassIni(unittest.TestCase):
         tmp_path = tempfile.mkdtemp()
         non_existent = os.path.join(tmp_path, 'xxx')
         with self.assertRaises(config_reader.IniReaderError):
-            Ini(path=non_existent)
+            IniReader(path=non_existent)
 
     def test_none(self):
         with self.assertRaises(config_reader.IniReaderError):
-            Ini(path=None)
+            IniReader(path=None)
 
     def test_false(self):
         with self.assertRaises(config_reader.IniReaderError):
-            Ini(path=False)
+            IniReader(path=False)
 
     def test_emtpy_string(self):
         with self.assertRaises(config_reader.IniReaderError):
-            Ini(path='')
+            IniReader(path='')
 
 
 # Common code #################################################################
 
 
-class TestClassReader(unittest.TestCase):
+class TestClassReaderSelector(unittest.TestCase):
 
     def test_ini_first(self):
-        reader = Reader(Ini(INI_FILE), Environ(prefix='XXX'))
+        reader = ReaderSelector(IniReader(INI_FILE),
+                                EnvironReader(prefix='XXX'))
         self.assertEqual(reader.get('Classical', 'name'), 'Mozart')
 
     def test_environ_first(self):
-        reader = Reader(Environ('XXX'), Ini(INI_FILE))
+        reader = ReaderSelector(EnvironReader('XXX'), IniReader(INI_FILE))
         self.assertEqual(reader.get('Baroque', 'name'), 'Bach')
 
     def test_exception(self):
-        reader = Reader(Environ('XXX'), Ini(INI_FILE))
+        reader = ReaderSelector(EnvironReader('XXX'), IniReader(INI_FILE))
         with self.assertRaises(ValueError) as context:
             reader.get('lol', 'lol')
         self.assertEqual(
@@ -224,13 +225,13 @@ class TestFunctionLoadReadersByKeyword(unittest.TestCase):
 
     def test_order_ini_environ(self):
         readers = load_readers_by_keyword(ini=INI_FILE, environ='XXX')
-        self.assertEqual(readers[0].__class__.__name__, 'Ini')
-        self.assertEqual(readers[1].__class__.__name__, 'Environ')
+        self.assertEqual(readers[0].__class__.__name__, 'IniReader')
+        self.assertEqual(readers[1].__class__.__name__, 'EnvironReader')
 
     def test_order_environ_ini(self):
         readers = load_readers_by_keyword(environ='XXX', ini=INI_FILE, )
-        self.assertEqual(readers[0].__class__.__name__, 'Environ')
-        self.assertEqual(readers[1].__class__.__name__, 'Ini')
+        self.assertEqual(readers[0].__class__.__name__, 'EnvironReader')
+        self.assertEqual(readers[1].__class__.__name__, 'IniReader')
 
 
 # Integration tests ###########################################################
