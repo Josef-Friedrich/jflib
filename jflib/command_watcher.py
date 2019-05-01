@@ -14,6 +14,7 @@ Module to watch the execution of shell scripts. Both streams (`stdout` and
 """
 
 from logging.handlers import BufferingHandler
+import abc
 import logging
 import os
 import pwd
@@ -222,6 +223,31 @@ def setup_logging():
     logger.setLevel(1)
     logger.addHandler(handler)
     return (logger, handler)
+
+
+class BaseMaster(object, metaclass=abc.ABCMeta):
+    """Base class for all reporters"""
+
+    @abc.abstractmethod
+    def report(self, status: int = 0, service_name: str = 'command_watcher',
+               **data):
+        raise NotImplementedError('A reporter class must have a `report` '
+                                  'method.')
+
+
+class MasterReporter:
+    """"""
+
+    def __init__(self):
+        self.reporters = []
+
+    def add_reporter(self, reporter):
+        self.reporters.append(reporter)
+
+    def report(self, status: int = 0, service_name: str = 'command_watcher',
+               **data):
+        for reporter in self.reporters:
+            reporter.report(status, service_name, **data)
 
 
 class EmailMessage:
