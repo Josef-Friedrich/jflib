@@ -304,6 +304,20 @@ class ConfigReader(object):
     The order of the keywords is important. The first keyword, more
     specifically the first reader class, overwrites the next ones.
 
+    :param spec: A dictionary like this example:
+
+        .. code:: python
+
+            spec = {
+                'section_1': {
+                    'key_1': {
+                        'description': 'Lorem ipsum',
+                        'default': 123,
+                        'not_empty': True,
+                    }
+                }
+            }
+
     :param tuple argparse: A tuple `(args, mapping)`.
       `args`: The parsed `argparse` object.
       `mapping`: A dictionary like this one: `{'section.key': 'dest'}`. `dest`
@@ -313,12 +327,34 @@ class ConfigReader(object):
     :param str environ: The prefix of the environment variables.
     :param str ini: The path of the INI file.
     """
-    def __init__(self, **kwargs):
+    def __init__(self, spec: dict = {}, **kwargs):
         readers = load_readers_by_keyword(**kwargs)
+        self.spec = spec
+        """The specification dictionary. For more informations look at the
+        class arguments of this class."""
+
         self.reader = Reader(*readers)
+        """:py:class:`Reader`"""
 
     def get_class_interface(self) -> ClassInterface:
         return ClassInterface(self.reader)
 
     def get_dictionary_interface(self) -> DictionaryInterface:
         return DictionaryInterface(self.reader)
+
+    def check_section(self, section, not_empty=False) -> True:
+        """Check all keys of a section.
+
+        :raises ValueError: If the value is not configured and can not be
+          read by the readers.
+        :raises ValueError: If `not_empty` is true and value is empty.
+        :raises KeyError: By an unspecify section
+
+        """
+        for key, value_spec in self.spec[section].items():
+            value = self.reader.get(section, key)
+            if 'not_empty' in value_spec and \
+               value_spec['not_empty'] and not value:
+                raise ValueError('Spec check: section ”{}” key “{}” is empty.'
+                                 .format(section, key))
+        return True

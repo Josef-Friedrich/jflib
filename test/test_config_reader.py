@@ -333,6 +333,50 @@ class TestClassConfigReader(unittest.TestCase):
         self.assertEqual(config['specific']['environ'], 'environ')
         self.assertEqual(config['specific']['ini'], 'ini')
 
+    def test_method_check_section(self):
+        dictionary = {
+            'missing_key': {
+                'key': 'value'
+            },
+            'all_good': {
+                'key': 'value'
+            },
+            'empty': {
+                'key': ''
+            }
+        }
+        spec = {
+            'missing_key': {  # section
+                'key': {  # key
+                    'not_empty': True,
+                },
+                'not_configured_key': {  # key
+                    'not_empty': False,
+                },
+            },
+            'all_good': {  # section
+                'key': {  # key
+                    'not_empty': True,
+                }
+            },
+            'empty': {  # section
+                'key': {  # key
+                    'not_empty': True,
+                }
+            }
+        }
+        config_reader = ConfigReader(
+            spec=spec,
+            dictionary=dictionary,
+        )
+        self.assertTrue(config_reader.check_section('all_good'))
+        with self.assertRaises(ValueError):
+            config_reader.check_section('missing_key')
+        with self.assertRaises(KeyError):
+            config_reader.check_section('xxx')
+        with self.assertRaises(ValueError):
+            config_reader.check_section('empty')
+
 
 class TestTypes(unittest.TestCase):
 
