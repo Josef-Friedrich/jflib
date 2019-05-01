@@ -13,6 +13,7 @@ from jflib.config_reader import \
     Ini, \
     load_readers_by_keyword, \
     Reader, \
+    ReaderBase, \
     validate_key
 
 FILES_DIR = os.path.join(os.path.dirname(__file__), 'files')
@@ -56,6 +57,19 @@ class TestFunctionValidateKey(unittest.TestCase):
 
 
 # Reader classes ##############################################################
+
+
+class FalseReader(ReaderBase):
+
+    def not_get(self):
+        return 'It’s not get'
+
+
+class TestClassReaderBase(unittest.TestCase):
+
+    def test_exception(self):
+        with self.assertRaises(TypeError):
+            FalseReader()  # pylint: disable=abstract-class-instantiated
 
 
 class TestClassArgparse(unittest.TestCase):
@@ -206,7 +220,7 @@ class TestFunctionLoadReadersByKeyword(unittest.TestCase):
 
     def test_without_keywords_arguments(self):
         with self.assertRaises(TypeError):
-            load_readers_by_keyword(INI_FILE, 'XXX')
+            load_readers_by_keyword(INI_FILE, 'XXX')  # pylint: disable=E1121
 
     def test_order_ini_environ(self):
         readers = load_readers_by_keyword(ini=INI_FILE, environ='XXX')

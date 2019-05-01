@@ -39,6 +39,7 @@ import os
 import configparser
 import re
 import argparse
+import abc
 
 
 class ConfigValueError(Exception):
@@ -62,11 +63,15 @@ def validate_key(key: str) -> bool:
 # Reader classes ##############################################################
 
 
-class ReaderBase:
+class ReaderBase(object, metaclass=abc.ABCMeta):
     """Base class for all readers"""
 
     def _exception(self, msg):
         raise ConfigValueError(msg)
+
+    @abc.abstractmethod
+    def get(self, section, key):
+        raise NotImplementedError('A reader class must have a `get` method.')
 
 
 class Argparse(ReaderBase):
