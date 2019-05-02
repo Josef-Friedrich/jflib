@@ -499,6 +499,24 @@ class NscaSender:
         return message
 
 
+CONFIG_READER_SPEC = {
+    'email': {
+        'subject_prefix': {'description': ''},
+        'from_addr': {'description': ''},
+        'to_addr': {'description': '', 'not_empty': True},
+        'smtp_login': {'description': '', 'not_empty': True},
+        'smtp_password': {'description': '', 'not_empty': True},
+        'smtp_server': {'description': '', 'not_empty': True},
+    },
+    'nsca': {
+        'remote_host': {'description': '', 'not_empty': True},
+        'password': {'description': '', 'not_empty': True},
+        'encryption_method': {'description': '', 'not_empty': True},
+        'port': {'description': '', 'default': 5667},
+    }
+}
+
+
 class Watch:
     """Watch the execution of a command. Capture all output of a command.
     provide and setup a logging facility.
@@ -534,6 +552,7 @@ class Watch:
 
         if not config_reader and config_file:
             config_reader = ConfigReader(
+                spec=CONFIG_READER_SPEC,
                 ini=config_file,
                 dictionary=CONF_DEFAULTS,
             )
