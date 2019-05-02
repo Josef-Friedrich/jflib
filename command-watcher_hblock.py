@@ -28,6 +28,6 @@ sources_count = stdout.count(
 
 watch.report(
     status=0,
-    perfdata={'blocklist_count': blocklist_count,
-              'sources_count': sources_count}
+    performance_data={'blocklist_count': blocklist_count,
+                      'sources_count': sources_count}
 )

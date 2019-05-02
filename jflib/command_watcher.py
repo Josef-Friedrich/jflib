@@ -63,14 +63,12 @@ USERNAME = pwd.getpwuid(os.getuid()).pw_name
 class CommandWatcherError(Exception):
     """Exception raised by this module."""
 
-    def __init__(self, msg):
+    def __init__(self, msg, **data):
         reporter.report(
             status=2,
-            text_output='{}: {}'.format(
-                self.__class__.__name__,
-                msg,
-            )
-)
+            custom_message='{}: {}'.format(self.__class__.__name__, msg),
+            **data,
+        )
 
 class Timer:
     """Measure the execution time of a command run."""
@@ -243,6 +241,89 @@ class BaseReporter(object, metaclass=abc.ABCMeta):
                                   'method.')
 
 
+class Message:
+
+    def __init__(self, **data):
+        self._data = data
+
+    @property
+    def status(self) -> int:
+        return self._data.get('status', 0)
+
+    @property
+    def status_text(self) -> int:
+        return send_nsca.States[self.status]
+
+    @property
+    def service_name(self) -> str:
+        return self._data.get('service_name', 'service_not_set')
+
+    @property
+    def performance_data(self) -> str:
+        """
+        :return: A concatenated string
+        :rtype: str
+        """
+        performance_data = self._data.get('performance_data')
+        if performance_data:
+            pairs = []
+            for key, value in self._data.get('performance_data').items():
+                pairs.append('{!s}={!s}'.format(key, value))
+            return ' '.join(pairs)
+        return ''
+
+    @property
+    def custom_message(self) -> str:
+        return self._data.get('custom_message', '')
+
+    @property
+    def prefix(self) -> str:
+        return self._data.get('prefix', '[cwatcher]:')
+
+    @property
+    def message(self) -> str:
+        output = []
+        if self.prefix:
+            output.append(self.prefix)
+
+        output.append(self.service_name.upper())
+        output.append(self.status_text)
+        if self.custom_message:
+            output.append('- {}'.format(self.custom_message))
+        return ' '.join(output)
+
+    @property
+    def message_monitoring(self) -> str:
+        """message + performance_data"""
+        output = []
+        output.append(self.message)
+        if self.performance_data:
+            output.append('|')
+            output.append(self.performance_data)
+        return ' '.join(output)
+
+    @property
+    def body(self):
+        return '\n'.join([
+            self._data.get('body', ''),
+            self._data.get('log_records', '')
+        ])
+
+    @property
+    def completed_processes(self):
+        commands = []
+        completed_processes = self._data.get('completed_processes')
+        if completed_processes:
+            for process in completed_processes:
+                commands.append(' '.join(process.args))
+        if commands:
+            return'({})'.format('; '.join(commands))
+
+    @property
+    def user(self):
+        return '[user:{}]'.format(USERNAME)
+
+
 class MasterReporter:
     """"""
 
@@ -252,51 +333,12 @@ class MasterReporter:
     def add_reporter(self, reporter):
         self.reporters.append(reporter)
 
-    def report(self, status: int = 0, service_name: str = 'command_watcher',
-               **data):
+    def report(self, **data):
         for reporter in self.reporters:
-            reporter.report(status, service_name, **data)
+            reporter.report(Message(**data))
 
 
 reporter = MasterReporter()
-
-
-class EmailMessage:
-
-    def __init__(self, to_addr: str, service_name: str, body: str,
-                 subject_prefix: str = '', completed_processes: list = []):
-        self.to_addr = to_addr
-        self.subject = self._build_subject(service_name, subject_prefix,
-                                           completed_processes)
-        self.body = body
-
-    @staticmethod
-    def _build_subject(service_name: str, subject_prefix: str = '',
-                       completed_processes: list = []):
-        output = []
-
-        # subject_prefix
-        if subject_prefix:
-            output.append('{}:'.format(subject_prefix))
-
-        # service_name
-        output.append(service_name)
-
-        # commands
-        commands = []
-        if completed_processes:
-            for process in completed_processes:
-                commands.append(' '.join(process.args))
-        if commands:
-            output.append('({})'.format('; '.join(commands)))
-
-        output.append('[user:{}]'.format(USERNAME))
-
-        return ' '.join(output)
-
-    def __str__(self):
-        template = '[Email Message] To address: {}, Subject: {}'
-        return template.format(self.to_addr, self.subject)
 
 
 class EmailReporter(BaseReporter):
@@ -318,80 +360,16 @@ class EmailReporter(BaseReporter):
         return template.format(self.smtp_server, self.smtp_login,
                                self.subject_prefix, self.from_addr)
 
-    def report(self, status: int = 0, service_name: str = 'command_watcher',
-               **data):
-
-        message = EmailMessage(
-            to_addr=self.to_addr,
-            service_name=service_name,
-            body=data.get('log_records', 'no body'),
-            subject_prefix=self.subject_prefix,
-            completed_processes=data.get('completed_processes', [])
-        )
-
+    def report(self, message):
         send_email(
             from_addr=self.from_addr,
-            to_addr=message.to_addr,
-            subject=message.subject,
+            to_addr=self.to_addr,
+            subject=message.message,
             body=message.body,
             smtp_login=self.smtp_login,
             smtp_password=self.smtp_password,
             smtp_server=self.smtp_server
         )
-        return message
-
-
-class NscaMessage:
-
-    def __init__(self, status: int, service_name: str, host_name: str,
-                 custom_text_output: str = '', **perfdata):
-        self.status = status
-        self.service_name = service_name
-        self.host_name = host_name
-        self.text_output = self._format_text_output(
-            self.status,
-            custom_text_output,
-            **perfdata,
-        )
-
-    def __str__(self):
-        template = '[NSCA Message] Status: {}, Service name: {}, ' \
-                   'Host name: {}, Text output: {}'
-        return template.format(self.status, self.service_name, self.host_name,
-                               self.text_output)
-
-    @staticmethod
-    def _performance_data(**perfdata) -> str:
-        """
-        :return: A concatenated string
-        :rtype: str
-        """
-        pairs = []
-        for key, value in perfdata.items():
-            pairs.append('{!s}={!s}'.format(key, value))
-        return ' '.join(pairs)
-
-    def _format_text_output(self, status: int, custom_text_output: str = '',
-                            **perfdata) -> str:
-        """
-        :param status: Integer describing the status
-        :param custom_text_output: Freeform text placed between the prefix
-          (SERVICE OK - ) and the performance data ( | perf_1=1)
-
-        All `perfdata` gets rendered as performance data.
-        """
-        output_perfdata = ''
-        if perfdata:
-            output_perfdata = ' | {}'.format(
-                self._performance_data(**perfdata)
-            )
-
-        output_prefix = '{} {}'.format(self.service_name.upper(),
-                                       send_nsca.States[status])
-        output_suffix = ''
-        if custom_text_output:
-            output_suffix = ' - {}'.format(custom_text_output)
-        return '{}{}{}'.format(output_prefix, output_suffix, output_perfdata)
 
 
 class NscaReporter(BaseReporter):
@@ -414,34 +392,19 @@ class NscaReporter(BaseReporter):
         return template.format(self.remote_host, self.encryption_method,
                                self.port, self.service_name, self.host_name)
 
-    def report(self, status: int = 0, service_name: str = 'command_watcher',
-               **data):
+    def report(self, message):
         """Send a NSCA message to a remote NSCA server.
-
-        :param status: Integer describing the status
-        :param custom_output: Freeform text placed between the prefix
-          (SERVICE OK - ) and the performance data ( | perf_1=1)
-
-        All `kwargs` gets rendered as performance data.
         """
-        message = NscaMessage(
-            status=status,
-            host_name=self.host_name,
-            service_name=self.service_name,
-            custom_text_output=custom_output,
-            **kwargs
-        )
         send_nsca.send_nsca(
             status=message.status,
-            host_name=message.host_name,
+            host_name=HOSTNAME,
             service_name=message.service_name,
-            text_output=message.text_output,
+            text_output=message.message,
             remote_host=self.remote_host,
             password=str(self.password),
             encryption_method=self.encryption_method,
             port=self.port,
         )
-        return message
 
 CONFIG_READER_SPEC = {
     'email': {
@@ -554,35 +517,6 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def send_email(self):
-        """
-        :param str subject: The email subject.
-        :param str to_addr: The to email address.
-        """
-        message = self._email_sender.send(
-            to_addr=self._conf.email.to_addr,
-            service_name=self._service_name,
-            body=self._log_handler.all_records,
-            completed_processes=self._completed_processes,
-        )
-        self.log.debug(message)
-
-    def send_nsca(self, status: int, custom_output: str = '', **kwargs):
-        """Send a NSCA message to a remote NSCA server.
-
-        :param status: Integer describing the status
-        :param custom_output: Freeform text placed between the prefix
-          (SERVICE OK - ) and the performance data ( | perf_1=1)
-
-        All `kwargs` gets render as performance data.
-        """
-        message = self._nsca_sender.send(
-            status=status,
-            custom_output=custom_output,
-            **kwargs
-        )
-        self.log.debug(message)
-
     def report(self, status, **data):
         reporter.report(
             status=status,
@@ -658,6 +592,8 @@ class Watch:
         if self._raise_exceptions and process.returncode != 0:
             raise CommandWatcherError(
                 'The command {} exists with an non-zero return code.'
-                .format(' '.join(args))
+                .format(' '.join(args)),
+                service_name=self._service_name,
+                log_records=self._log_handler.all_records,
             )
         return process
