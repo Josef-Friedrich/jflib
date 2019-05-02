@@ -225,7 +225,7 @@ def setup_logging():
     return (logger, handler)
 
 
-class BaseMaster(object, metaclass=abc.ABCMeta):
+class BaseReporter(object, metaclass=abc.ABCMeta):
     """Base class for all reporters"""
 
     @abc.abstractmethod
@@ -233,6 +233,72 @@ class BaseMaster(object, metaclass=abc.ABCMeta):
                **data):
         raise NotImplementedError('A reporter class must have a `report` '
                                   'method.')
+
+
+class EmailReporter(BaseReporter):
+
+    def __init__(self, smtp_server: str, smtp_login: str, smtp_password: str,
+                 subject_prefix: str = '', from_addr: str = ''):
+        self.smtp_server = smtp_server
+        self.smtp_login = smtp_login
+        self.smtp_password = smtp_password
+        self.subject_prefix = subject_prefix
+        self.from_addr = from_addr
+        if not from_addr:
+            self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
+
+    def __str__(self):
+        template = '[Email Sender] SMTP server: {}, SMTP login: {}, ' \
+                   'Subject_prefix: {}, From address: {}'
+        return template.format(self.smtp_server, self.smtp_login,
+                               self.subject_prefix, self.from_addr)
+
+    def report(self, status: int = 0, service_name: str = 'command_watcher',
+               **data):
+
+        message = EmailMessage(
+            to_addr=data['to_addr'],
+            service_name=service_name,
+            body=data['body'],
+            subject_prefix=self.subject_prefix,
+            completed_processes=data['completed_processes']
+        )
+
+        send_email(
+            from_addr=self.from_addr,
+            to_addr=message.to_addr,
+            subject=message.subject,
+            body=message.body,
+            smtp_login=self.smtp_login,
+            smtp_password=self.smtp_password,
+            smtp_server=self.smtp_server
+        )
+        return message
+
+
+class NscaReporter(BaseReporter):
+
+    """Wrapper around `send_nsca` to send NSCA messages. Set up the NSCA
+    client."""
+
+    def __init__(self, remote_host: str, password: str, encryption_method: int,
+                 port: int, service_name: str, host_name: str):
+        self.remote_host = remote_host
+        self.password = password
+        self.encryption_method = encryption_method
+        self.port = port
+        self.service_name = service_name
+        self.host_name = host_name
+
+    def __str__(self):
+        template = '[NSCA Sender] Remote host: {}, Encryption method: {}, ' \
+                   'Port: {}, Service name: {}, Host name: {}'
+        return template.format(self.remote_host, self.encryption_method,
+                               self.port, self.service_name, self.host_name)
+
+    def report(self, status: int = 0, service_name: str = 'command_watcher',
+               **data):
+        pass
 
 
 class MasterReporter:
@@ -248,6 +314,9 @@ class MasterReporter:
                **data):
         for reporter in self.reporters:
             reporter.report(status, service_name, **data)
+
+
+reporter = MasterReporter()
 
 
 class EmailMessage:
@@ -491,6 +560,8 @@ class Watch:
         )
         """An instance of :py:class:`NscaSender`."""
         self.log.debug(self._nsca_sender)
+
+        self.reporter = MasterReporter()
 
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""
