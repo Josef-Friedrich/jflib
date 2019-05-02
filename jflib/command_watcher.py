@@ -61,8 +61,16 @@ USERNAME = pwd.getpwuid(os.getuid()).pw_name
 
 
 class CommandWatcherError(Exception):
-    """Exception raiseed by this module."""
+    """Exception raised by this module."""
 
+    def __init__(self, msg):
+        reporter.report(
+            status=2,
+            text_output='{}: {}'.format(
+                self.__class__.__name__,
+                msg,
+            )
+)
 
 class Timer:
     """Measure the execution time of a command run."""
@@ -235,72 +243,6 @@ class BaseReporter(object, metaclass=abc.ABCMeta):
                                   'method.')
 
 
-class EmailReporter(BaseReporter):
-
-    def __init__(self, smtp_server: str, smtp_login: str, smtp_password: str,
-                 subject_prefix: str = '', from_addr: str = ''):
-        self.smtp_server = smtp_server
-        self.smtp_login = smtp_login
-        self.smtp_password = smtp_password
-        self.subject_prefix = subject_prefix
-        self.from_addr = from_addr
-        if not from_addr:
-            self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
-
-    def __str__(self):
-        template = '[Email Sender] SMTP server: {}, SMTP login: {}, ' \
-                   'Subject_prefix: {}, From address: {}'
-        return template.format(self.smtp_server, self.smtp_login,
-                               self.subject_prefix, self.from_addr)
-
-    def report(self, status: int = 0, service_name: str = 'command_watcher',
-               **data):
-
-        message = EmailMessage(
-            to_addr=data['to_addr'],
-            service_name=service_name,
-            body=data['body'],
-            subject_prefix=self.subject_prefix,
-            completed_processes=data['completed_processes']
-        )
-
-        send_email(
-            from_addr=self.from_addr,
-            to_addr=message.to_addr,
-            subject=message.subject,
-            body=message.body,
-            smtp_login=self.smtp_login,
-            smtp_password=self.smtp_password,
-            smtp_server=self.smtp_server
-        )
-        return message
-
-
-class NscaReporter(BaseReporter):
-
-    """Wrapper around `send_nsca` to send NSCA messages. Set up the NSCA
-    client."""
-
-    def __init__(self, remote_host: str, password: str, encryption_method: int,
-                 port: int, service_name: str, host_name: str):
-        self.remote_host = remote_host
-        self.password = password
-        self.encryption_method = encryption_method
-        self.port = port
-        self.service_name = service_name
-        self.host_name = host_name
-
-    def __str__(self):
-        template = '[NSCA Sender] Remote host: {}, Encryption method: {}, ' \
-                   'Port: {}, Service name: {}, Host name: {}'
-        return template.format(self.remote_host, self.encryption_method,
-                               self.port, self.service_name, self.host_name)
-
-    def report(self, status: int = 0, service_name: str = 'command_watcher',
-               **data):
-        pass
-
-
 class MasterReporter:
     """"""
 
@@ -357,14 +299,15 @@ class EmailMessage:
         return template.format(self.to_addr, self.subject)
 
 
-class EmailSender:
+class EmailReporter(BaseReporter):
 
     def __init__(self, smtp_server: str, smtp_login: str, smtp_password: str,
-                 subject_prefix: str = '', from_addr: str = ''):
+                 to_addr: str, subject_prefix: str = '', from_addr: str = ''):
         self.smtp_server = smtp_server
         self.smtp_login = smtp_login
         self.smtp_password = smtp_password
         self.subject_prefix = subject_prefix
+        self.to_addr = to_addr
         self.from_addr = from_addr
         if not from_addr:
             self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
@@ -375,15 +318,15 @@ class EmailSender:
         return template.format(self.smtp_server, self.smtp_login,
                                self.subject_prefix, self.from_addr)
 
-    def send(self, to_addr: str, service_name: str, body: str,
-             completed_processes: list = []):
+    def report(self, status: int = 0, service_name: str = 'command_watcher',
+               **data):
 
         message = EmailMessage(
-            to_addr=to_addr,
+            to_addr=self.to_addr,
             service_name=service_name,
-            body=body,
+            body=data.get('log_records', 'no body'),
             subject_prefix=self.subject_prefix,
-            completed_processes=completed_processes
+            completed_processes=data.get('completed_processes', [])
         )
 
         send_email(
@@ -451,7 +394,8 @@ class NscaMessage:
         return '{}{}{}'.format(output_prefix, output_suffix, output_perfdata)
 
 
-class NscaSender:
+class NscaReporter(BaseReporter):
+
     """Wrapper around `send_nsca` to send NSCA messages. Set up the NSCA
     client."""
 
@@ -470,7 +414,8 @@ class NscaSender:
         return template.format(self.remote_host, self.encryption_method,
                                self.port, self.service_name, self.host_name)
 
-    def send(self, status: int, custom_output: str = '', **kwargs):
+    def report(self, status: int = 0, service_name: str = 'command_watcher',
+               **data):
         """Send a NSCA message to a remote NSCA server.
 
         :param status: Integer describing the status
@@ -497,7 +442,6 @@ class NscaSender:
             port=self.port,
         )
         return message
-
 
 CONFIG_READER_SPEC = {
     'email': {
@@ -559,28 +503,35 @@ class Watch:
 
         self._conf = config_reader.get_class_interface()
 
-        self._email_sender = EmailSender(
-            smtp_server=self._conf.email.smtp_server,
-            smtp_login=self._conf.email.smtp_login,
-            smtp_password=self._conf.email.smtp_password,
-            subject_prefix=self._conf.email.subject_prefix,
-            from_addr=self._conf.email.from_addr,
-        )
-        """An instance of :py:class:`EmailSender`."""
-        self.log.debug(self._email_sender)
+        try:
+            config_reader.check_section('email')
+            email_reporter = EmailReporter(
+                smtp_server=self._conf.email.smtp_server,
+                smtp_login=self._conf.email.smtp_login,
+                smtp_password=self._conf.email.smtp_password,
+                to_addr=self._conf.email.to_addr,
+                subject_prefix=self._conf.email.subject_prefix,
+                from_addr=self._conf.email.from_addr,
+            )
+            reporter.add_reporter(email_reporter)
+            self.log.debug(email_reporter)
+        except (ValueError, KeyError):
+            pass
 
-        self._nsca_sender = NscaSender(
-            remote_host=self._conf.nsca.remote_host,
-            password=self._conf.nsca.password,
-            encryption_method=self._conf.nsca.encryption_method,
-            port=self._conf.nsca.port,
-            service_name=self._service_name,
-            host_name=self._hostname,
-        )
-        """An instance of :py:class:`NscaSender`."""
-        self.log.debug(self._nsca_sender)
-
-        self.reporter = MasterReporter()
+        try:
+            config_reader.check_section('nsca')
+            nsca_reporter = NscaReporter(
+                remote_host=self._conf.nsca.remote_host,
+                password=self._conf.nsca.password,
+                encryption_method=self._conf.nsca.encryption_method,
+                port=self._conf.nsca.port,
+                service_name=self._service_name,
+                host_name=self._hostname,
+            )
+            reporter.add_reporter(nsca_reporter)
+            self.log.debug(nsca_reporter)
+        except (ValueError, KeyError):
+            pass
 
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""
@@ -631,6 +582,15 @@ class Watch:
             **kwargs
         )
         self.log.debug(message)
+
+    def report(self, status, **data):
+        reporter.report(
+            status=status,
+            service_name=self._service_name,
+            log_records=self._log_handler.all_records,
+            completed_processes=self._completed_processes,
+            **data,
+        )
 
     def _stdout_stderr_reader(self, pipe, stream):
         """
