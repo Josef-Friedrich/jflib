@@ -24,6 +24,7 @@ import subprocess
 import sys
 import textwrap
 import threading
+import typing
 import time
 import uuid
 
@@ -100,8 +101,9 @@ class LoggingHandler(BufferingHandler):
     """Store of all logging records in the memory. Print all records on emit.
     """
 
-    def __init__(self):
+    def __init__(self, master_logger=None):
         BufferingHandler.__init__(self, capacity=1000000)
+        self._master_logger = master_logger
 
     @staticmethod
     def _print(record):
@@ -163,20 +165,20 @@ class LoggingHandler(BufferingHandler):
             termcolor.colored(record.msg, color, attrs=normal),
         ), file=stream)
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord):
         """
-        :param logging.LogRecord record: A record object.
+        :param record: A record object.
         """
         self.buffer.append(record)
-        self._print(record)
+        if not self._master_logger:
+            self._print(record)
+        else:
+            self._master_logger.log(record.level, record.msg)
         if self.shouldFlush(record):
             self.flush()
 
     @property
     def stdout(self):
-        """
-        :param logging.LogRecord record: A record object.
-        """
         messages = []
         for record in self.buffer:
             if record.levelname == 'STDOUT':
@@ -216,8 +218,11 @@ def _log_stderr(self, message, *args, **kws):
 logging.Logger.stderr = _log_stderr
 
 
-def setup_logging():
-    # To get a fresh logger on each watch action.
+def setup_logging(master_logger: logging.Logger = None) -> \
+    typing.Tuple[logging.Logger, LoggingHandler]:
+    """Setup a fresh logger for each watch action.
+
+    :param master_logger: Forward all log messages to a master logger."""
     logger = logging.getLogger(name=str(uuid.uuid1()))
     formatter = logging.Formatter(fmt=LOGFMT, datefmt=DATEFMT)
     handler = LoggingHandler()
@@ -533,16 +538,6 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def report(self, status, **data):
-        message = reporter.report(
-            status=status,
-            service_name=self._service_name,
-            log_records=self._log_handler.all_records,
-            completed_processes=self._completed_processes,
-            **data,
-        )
-        self.log.debug('[Message] {}'.format(message))
-
     def _stdout_stderr_reader(self, pipe, stream):
         """
         :param object pipe: `process.stdout` or `process.stdout`
@@ -615,6 +610,18 @@ class Watch:
             )
         return process
 
-    def finalize(self, **data):
-        self.log.info('Overall execution time: {}'.format(self._timer.result()))
+    def report(self, status, **data):
+        message = reporter.report(
+            status=status,
+            service_name=self._service_name,
+            log_records=self._log_handler.all_records,
+            completed_processes=self._completed_processes,
+            **data,
+        )
+        self.log.debug('[Message] {}'.format(message))
+
+    def final_report(self, **data):
+        self.log.info(
+            'Overall execution time: {}'.format(self._timer.result())
+        )
         self.report(**data)
