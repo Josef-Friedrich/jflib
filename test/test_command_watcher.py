@@ -478,6 +478,17 @@ class TestClassMessage(unittest.TestCase):
             custom_message='Everything ok'
         )
 
+    def test_magic_method(self):
+        self.assertEqual(
+            str(self.message),
+            "body: '', custom_message: 'Everything ok', message: "
+            "'[cwatcher]: SERVICE OK - Everything ok', message_monitoring: "
+            "'[cwatcher]: SERVICE OK - Everything ok "
+            "| value1=1 value2=2', performance_data: 'value1=1 value2=2', "
+            "prefix: '[cwatcher]:', service_name: 'service', "
+            "status_text: 'OK', user: '[user:jf]'"
+)
+
     def test_attribute_status(self):
         self.assertEqual(self.message.status, 0)
 

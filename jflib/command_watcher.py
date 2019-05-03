@@ -13,7 +13,6 @@ Module to watch the execution of shell scripts. Both streams (`stdout` and
     watch.run(['rsync', '-av', '/home', '/backup'])
 """
 
-from logging.handlers import BufferingHandler
 import abc
 import logging
 import os
@@ -23,9 +22,12 @@ import shlex
 import socket
 import subprocess
 import sys
+import textwrap
 import threading
 import time
 import uuid
+
+from logging.handlers import BufferingHandler
 
 from . import termcolor, send_nsca
 from .config_reader import ConfigReader
@@ -246,6 +248,17 @@ class Message:
     def __init__(self, **data):
         self._data = data
 
+    def __str__(self):
+        output = []
+        for attr in dir(self):
+            if not attr.startswith('_') and not callable(getattr(self, attr)):
+                value = getattr(self, attr)
+                if value:
+                    value = textwrap.shorten(value, width=64)
+                    value = value.replace('\n', ' ')
+                    output.append('{}: \'{}\''.format(attr, value))
+        return ', '.join(output)
+
     @property
     def status(self) -> int:
         return self._data.get('status', 0)
@@ -334,8 +347,10 @@ class MasterReporter:
         self.reporters.append(reporter)
 
     def report(self, **data):
+        message = Message(**data)
         for reporter in self.reporters:
-            reporter.report(Message(**data))
+            reporter.report(message)
+        return message
 
 
 reporter = MasterReporter()
@@ -373,7 +388,6 @@ class EmailReporter(BaseReporter):
 
 
 class NscaReporter(BaseReporter):
-
     """Wrapper around `send_nsca` to send NSCA messages. Set up the NSCA
     client."""
 
@@ -507,6 +521,8 @@ class Watch:
         self._raise_exceptions = raise_exceptions
         """Raise exceptions"""
 
+        self._timer = Timer()
+
     @property
     def stdout(self):
         """Alias / shortcut for `self._log_handler.stdout`."""
@@ -518,13 +534,14 @@ class Watch:
         return self._log_handler.stderr
 
     def report(self, status, **data):
-        reporter.report(
+        message = reporter.report(
             status=status,
             service_name=self._service_name,
             log_records=self._log_handler.all_records,
             completed_processes=self._completed_processes,
             **data,
         )
+        self.log.debug('[Message] {}'.format(message))
 
     def _stdout_stderr_reader(self, pipe, stream):
         """
@@ -597,3 +614,7 @@ class Watch:
                 log_records=self._log_handler.all_records,
             )
         return process
+
+    def finalize(self, **data):
+        self.log.info('Overall execution time: {}'.format(self._timer.result()))
+        self.report(**data)

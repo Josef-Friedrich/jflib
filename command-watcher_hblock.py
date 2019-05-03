@@ -26,7 +26,7 @@ sources_count = stdout.count(
     'https://raw.githubusercontent.com/hectorm/hmirror'
 )
 
-watch.report(
+watch.finalize(
     status=0,
     performance_data={'blocklist_count': blocklist_count,
                       'sources_count': sources_count}
