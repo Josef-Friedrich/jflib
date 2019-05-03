@@ -16,7 +16,7 @@ watch.log.info('Download file “{}” from “{}”'.format(DEST, URL))
 make_executable(DEST)
 watch.log.info('Make file “{}” executable.'.format(DEST))
 
-watch.run('/usr/local/bin/hblock')
+watch.run_ng('/usr/local/bin/hblock')
 
 stdout = watch.stdout
 
@@ -26,7 +26,7 @@ sources_count = stdout.count(
     'https://raw.githubusercontent.com/hectorm/hmirror'
 )
 
-watch.finalize(
+watch.final_report(
     status=0,
     performance_data={'blocklist_count': blocklist_count,
                       'sources_count': sources_count}
