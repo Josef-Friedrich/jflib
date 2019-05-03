@@ -443,6 +443,93 @@ CONFIG_READER_SPEC = {
 }
 
 
+class CommandRunner:
+    """Run one command"""
+
+    def __init__(self, service_name: str = 'command_watcher',
+                 raise_exceptions: bool = True, master_logger=None):
+
+        self._queue = queue.Queue()
+        """An instance of :py:class:`queue.Queue`."""
+
+        log, log_handler = setup_logging()
+
+        self.log = log
+        self.log_handler = log_handler
+
+    def _stdout_stderr_reader(self, pipe, stream):
+        """
+        :param object pipe: `process.stdout` or `process.stdout`
+        :param str stream: `stdout` or `stderr`
+        """
+        try:
+            with pipe:
+                for line in iter(pipe.readline, b''):
+                    self._queue.put((line, stream))
+        finally:
+            self._queue.put(None)
+
+    def _start_thread(self, pipe, stream):
+        """
+        :param object pipe: `process.stdout` or `process.stdout`
+        :param str stream: `stdout` or `stderr`
+        """
+        threading.Thread(
+            target=self._stdout_stderr_reader,
+            args=[pipe, stream]
+        ).start()
+
+    def run(self, args, **kwargs):
+        """Run a command.
+
+        You can use all keyword arguments from
+        :py:class:`subprocess.Popen` except `bufsize`, `stderr`, `stdout`.
+
+        :param mixed args: List or string. A command with command line
+          arguments. Like subprocess.Popen(args).
+        :param bool shell: If true, the command will be executed through the
+          shell.
+        :param str cwd: Sets the current directory before the child is
+          executed.
+        :param dict env: Defines the environment variables for the new process.
+
+        :return: Process object
+        :rtype: subprocess.CompletedProcess
+        """
+        if isinstance(args, str):
+            args = shlex.split(args)
+        self.log.info('Run command: {}'.format(' '.join(args)))
+        timer = Timer()
+        process = subprocess.Popen(args, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, bufsize=1, **kwargs)
+
+        self._start_thread(process.stdout, 'stdout')
+        self._start_thread(process.stderr, 'stderr')
+
+        for _ in range(2):
+            for line, stream in iter(self._queue.get, None):
+                if line:
+                    line = line.decode('utf-8').strip()
+
+                if line:
+                    if stream == 'stderr':
+                        self.log.stderr(line)
+                    if stream == 'stdout':
+                        self.log.stdout(line)
+
+        process.wait()
+        self._completed_processes.append(process)
+        self.log.info('Execution time: {}'.format(timer.result()))
+        if self._raise_exceptions and process.returncode != 0:
+            raise CommandWatcherError(
+                'The command {} exists with an non-zero return code.'
+                .format(' '.join(args)),
+                service_name=self._service_name,
+                log_records=self.log_handler.all_records,
+            )
+        return process
+
+
 class Watch:
     """Watch the execution of a command. Capture all output of a command.
     provide and setup a logging facility.
