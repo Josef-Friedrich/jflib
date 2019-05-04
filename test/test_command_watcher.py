@@ -145,6 +145,7 @@ class TestClassEmailChannel(unittest.TestCase):
             smtp_login='jf',
             smtp_password='123',
             to_addr='logs@example.com',
+            from_addr='from@example.com',
         )
 
     def test_property_smtp_server(self):
@@ -160,14 +161,14 @@ class TestClassEmailChannel(unittest.TestCase):
         self.assertEqual(self.email.to_addr, 'logs@example.com')
 
     def test_property_from_addr(self):
-        self.assertEqual(self.email.from_addr, FROM_ADDR)
+        self.assertEqual(self.email.from_addr, 'from@example.com')
 
     def test_magic_method_str(self):
         self.maxDiff = None
         self.assertEqual(
             str(self.email),
-            "[EmailChannel] from_addr: '{}', ".format(FROM_ADDR) +
-            "smtp_login: 'jf', smtp_password: '123', " +
+            "[EmailChannel] from_addr: 'from@example.com', "
+            "smtp_login: 'jf', smtp_password: '123', "
             "smtp_server: 'mail.example.com:587', to_addr: 'logs@example.com'"
         )
 
@@ -177,7 +178,7 @@ class TestClassEmailChannel(unittest.TestCase):
             self.email.report(message)
         send_email.assert_called_with(
             body='body\n',
-            from_addr=FROM_ADDR,
+            from_addr='from@example.com',
             smtp_login='jf',
             smtp_password='123',
             smtp_server='mail.example.com:587',
