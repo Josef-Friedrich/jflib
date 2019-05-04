@@ -163,6 +163,7 @@ class TestClassEmailChannel(unittest.TestCase):
         self.assertEqual(self.email.from_addr, FROM_ADDR)
 
     def test_magic_method_str(self):
+        self.maxDiff = None
         self.assertEqual(
             str(self.email),
             "[EmailChannel] from_addr: '{}', ".format(FROM_ADDR) +
