@@ -328,11 +328,11 @@ class Message:
         ])
 
     @property
-    def completed_processes(self):
+    def processes(self):
         commands = []
-        completed_processes = self._data.get('completed_processes')
-        if completed_processes:
-            for process in completed_processes:
+        processes = self._data.get('processes')
+        if processes:
+            for process in processes:
                 commands.append(' '.join(process.args))
         if commands:
             return'({})'.format('; '.join(commands))
@@ -443,8 +443,8 @@ CONFIG_READER_SPEC = {
 }
 
 
-class CommandRunner:
-    """Run a command.
+class Process:
+    """Run new process.
 
     You can use all keyword arguments from
     :py:class:`subprocess.Popen` except `bufsize`, `stderr`, `stdout`.
@@ -464,22 +464,25 @@ class CommandRunner:
         """An instance of :py:class:`queue.Queue`."""
 
         log, log_handler = setup_logging(master_logger=master_logger)
-
-        self.log = log
-        self.log_handler = log_handler
+        self.log: logging.Logger = log
+        """A ready to go and configured logger. An instance of
+        :py:class:`logging.Logger`."""
+        self.log_handler: LoggingHandler = log_handler
+        """An instance of :py:class:`LoggingHandler`."""
 
         self.log.info('Run command: {}'.format(' '.join(self.args_normalized)))
         timer = Timer()
-        self.process = subprocess.Popen(
+        self.subprocess = subprocess.Popen(
             self.args_normalized,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             bufsize=1,
             **kwargs
         )
+        """subprocess"""
 
-        self._start_thread(self.process.stdout, 'stdout')
-        self._start_thread(self.process.stderr, 'stderr')
+        self._start_thread(self.subprocess.stdout, 'stdout')
+        self._start_thread(self.subprocess.stderr, 'stderr')
 
         for _ in range(2):
             for line, stream in iter(self._queue.get, None):
@@ -491,7 +494,7 @@ class CommandRunner:
                         self.log.stderr(line)
                     if stream == 'stdout':
                         self.log.stdout(line)
-        self.process.wait()
+        self.subprocess.wait()
         self.log.info('Execution time: {}'.format(timer.result()))
 
     @property
@@ -606,12 +609,9 @@ class Watch:
         except (ValueError, KeyError):
             pass
 
-        self._queue = queue.Queue()
-        """An instance of :py:class:`queue.Queue`."""
-
-        self._completed_processes = []
+        self.processes = []
         """A list of completed processes
-        :py:class:`subprocess.CompletedProcess`. Everytime you use the method
+        :py:class:`Process`. Everytime you use the method
         `run()` the process object is appened in the list."""
 
         self._raise_exceptions = raise_exceptions
@@ -629,70 +629,10 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def _stdout_stderr_reader(self, pipe, stream):
-        """
-        :param object pipe: `process.stdout` or `process.stdout`
-        :param str stream: `stdout` or `stderr`
-        """
-        try:
-            with pipe:
-                for line in iter(pipe.readline, b''):
-                    self._queue.put((line, stream))
-        finally:
-            self._queue.put(None)
-
-    def _start_thread(self, pipe, stream):
-        """
-        :param object pipe: `process.stdout` or `process.stdout`
-        :param str stream: `stdout` or `stderr`
-        """
-        threading.Thread(
-            target=self._stdout_stderr_reader,
-            args=[pipe, stream]
-        ).start()
-
     def run(self, args, **kwargs):
-        """Run a command.
-
-        You can use all keyword arguments from
-        :py:class:`subprocess.Popen` except `bufsize`, `stderr`, `stdout`.
-
-        :param mixed args: List or string. A command with command line
-          arguments. Like subprocess.Popen(args).
-        :param bool shell: If true, the command will be executed through the
-          shell.
-        :param str cwd: Sets the current directory before the child is
-          executed.
-        :param dict env: Defines the environment variables for the new process.
-
-        :return: Process object
-        :rtype: subprocess.CompletedProcess
-        """
-        if isinstance(args, str):
-            args = shlex.split(args)
-        self.log.info('Run command: {}'.format(' '.join(args)))
-        timer = Timer()
-        process = subprocess.Popen(args, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, bufsize=1, **kwargs)
-
-        self._start_thread(process.stdout, 'stdout')
-        self._start_thread(process.stderr, 'stderr')
-
-        for _ in range(2):
-            for line, stream in iter(self._queue.get, None):
-                if line:
-                    line = line.decode('utf-8').strip()
-
-                if line:
-                    if stream == 'stderr':
-                        self.log.stderr(line)
-                    if stream == 'stdout':
-                        self.log.stdout(line)
-
-        process.wait()
-        self._completed_processes.append(process)
-        self.log.info('Execution time: {}'.format(timer.result()))
-        if self._raise_exceptions and process.returncode != 0:
+        process = Process(args, master_logger=self.log, **kwargs)
+        self.processes.append(process)
+        if self._raise_exceptions and process.subprocess.returncode != 0:
             raise CommandWatcherError(
                 'The command {} exists with an non-zero return code.'
                 .format(' '.join(args)),
@@ -701,15 +641,12 @@ class Watch:
             )
         return process
 
-    def run_ng(self, args, **kwargs):
-        CommandRunner(args, master_logger=self.log, **kwargs)
-
     def report(self, status, **data):
         message = reporter.report(
             status=status,
             service_name=self._service_name,
             log_records=self._log_handler.all_records,
-            completed_processes=self._completed_processes,
+            processes=self.processes,
             **data,
         )
         self.log.debug('[Message] {}'.format(message))

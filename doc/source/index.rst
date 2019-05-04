@@ -2,6 +2,11 @@
 Welcome to jflib's documentation!
 #################################
 
+.. toctree::
+
+    command_watcher
+
+
 *******
 Modules
 *******
@@ -15,11 +20,6 @@ Modules
 ===========
 
 .. automodule:: jflib.capturing
-
-`command_watcher`
-=================
-
-.. automodule:: jflib.command_watcher
 
 `config_reader`
 ===============

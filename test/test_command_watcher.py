@@ -143,9 +143,9 @@ class TestClassEmailMessageBuildSubject(unittest.TestCase):
     user_suffix = '[user:{}]'.format(USERNAME)
 
     def build_subject(self, service_name, subject_prefix='',
-                      completed_processes=[]):
+                      processes=[]):
         mocked_processes = []
-        for args in completed_processes:
+        for args in processes:
             mocked_processes.append(mock.Mock(args=args))
         return EmailMessage._build_subject(service_name, subject_prefix,
                                            mocked_processes)
@@ -157,7 +157,7 @@ class TestClassEmailMessageBuildSubject(unittest.TestCase):
             '#CW: service (ls; ls -l) {}'.format(self.user_suffix)
         )
 
-    def test_without_completed_processes(self):
+    def test_withoutprocesses(self):
         result = self.build_subject('service', '#CW')
         self.assertEqual(result, '#CW: service {}'.format(self.user_suffix))
 
@@ -401,13 +401,13 @@ class TestClassWatch(unittest.TestCase):
         watch.log.stderr('stderr')
         self.assertEqual(watch.stderr, 'stderr')
 
-    def test_property_completed_processes(self):
+    def test_propertyprocesses(self):
         watch = Watch(config_file=CONF, service_name='test')
-        self.assertEqual(watch._completed_processes, [])
+        self.assertEqual(watch.processes, [])
         watch.run(['ls'])
         watch.run(['ls', '-l'])
         watch.run(['ls', '-la'])
-        self.assertEqual(len(watch._completed_processes), 3)
+        self.assertEqual(len(watch.processes), 3)
 
     @unittest.skip('Lets fix later')
     def test_method_send_email_with_config_reader(self):

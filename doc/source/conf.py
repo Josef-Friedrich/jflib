@@ -30,6 +30,7 @@ autodoc_default_options = {
     'members': True,
     'undoc-members': True,
     'private-members': False,
+    'special-members': '',
     'show-inheritance': True,
 }
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
