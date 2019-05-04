@@ -35,10 +35,25 @@ from .config_reader import ConfigReader
 from .send_email import send_email
 
 
-
-
 HOSTNAME = socket.gethostname()
 USERNAME = pwd.getpwuid(os.getuid()).pw_name
+
+
+class BaseClass:
+
+    def _obj_to_str(self, attributes=[]):
+        if not attributes:
+            attributes = dir(self)
+        output = []
+        for attribute in attributes:
+            if not attribute.startswith('_') and \
+               not callable(getattr(self, attribute)):
+                value = getattr(self, attribute)
+                if value:
+                    value = textwrap.shorten(str(value), width=64)
+                    value = value.replace('\n', ' ')
+                    output.append('{}: \'{}\''.format(attribute, value))
+        return '[{}] {}'.format(self.__class__.__name__, ', '.join(output))
 
 
 class CommandWatcherError(Exception):
@@ -50,6 +65,7 @@ class CommandWatcherError(Exception):
             custom_message='{}: {}'.format(self.__class__.__name__, msg),
             **data,
         )
+
 
 class Timer:
     """Measure the execution time of a command run."""
@@ -216,7 +232,7 @@ logging.Logger.stderr = _log_stderr
 
 
 def setup_logging(master_logger: logging.Logger = None) -> \
-    typing.Tuple[logging.Logger, LoggingHandler]:
+        typing.Tuple[logging.Logger, LoggingHandler]:
     """Setup a fresh logger for each watch action.
 
     :param master_logger: Forward all log messages to a master logger."""
@@ -238,7 +254,7 @@ def setup_logging(master_logger: logging.Logger = None) -> \
 # Reporting ###################################################################
 
 
-class Message:
+class Message(BaseClass):
     """
     :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
         Nagios / Icinga monitoring status / state.
@@ -253,15 +269,7 @@ class Message:
         self._data = data
 
     def __str__(self):
-        output = []
-        for attr in dir(self):
-            if not attr.startswith('_') and not callable(getattr(self, attr)):
-                value = getattr(self, attr)
-                if value:
-                    value = textwrap.shorten(str(value), width=64)
-                    value = value.replace('\n', ' ')
-                    output.append('{}: \'{}\''.format(attr, value))
-        return ', '.join(output)
+        return self._obj_to_str()
 
     @property
     def status(self) -> int:
@@ -341,7 +349,7 @@ class Message:
         return '[user:{}]'.format(USERNAME)
 
 
-class BaseChannel(object, metaclass=abc.ABCMeta):
+class BaseChannel(BaseClass, metaclass=abc.ABCMeta):
     """Base class for all reporters"""
 
     @abc.abstractmethod
@@ -350,24 +358,22 @@ class BaseChannel(object, metaclass=abc.ABCMeta):
         raise NotImplementedError('A reporter class must have a `report` '
                                   'method.')
 
+
 class EmailChannel(BaseChannel):
+    """Send reports by e-mail."""
 
     def __init__(self, smtp_server: str, smtp_login: str, smtp_password: str,
-                 to_addr: str, subject_prefix: str = '', from_addr: str = ''):
+                 to_addr: str, from_addr: str = ''):
         self.smtp_server = smtp_server
         self.smtp_login = smtp_login
         self.smtp_password = smtp_password
-        self.subject_prefix = subject_prefix
         self.to_addr = to_addr
         self.from_addr = from_addr
         if not from_addr:
             self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
 
     def __str__(self):
-        template = '[Email Sender] SMTP server: {}, SMTP login: {}, ' \
-                   'Subject_prefix: {}, From address: {}'
-        return template.format(self.smtp_server, self.smtp_login,
-                               self.subject_prefix, self.from_addr)
+        return self._obj_to_str()
 
     def report(self, message):
         send_email(
@@ -386,19 +392,17 @@ class NscaChannel(BaseChannel):
     client."""
 
     def __init__(self, remote_host: str, password: str, encryption_method: int,
-                 port: int, service_name: str, host_name: str):
+                 port: int, service_name: str):
         self.remote_host = remote_host
         self.password = password
         self.encryption_method = encryption_method
         self.port = port
         self.service_name = service_name
-        self.host_name = host_name
 
     def __str__(self):
-        template = '[NSCA Sender] Remote host: {}, Encryption method: {}, ' \
-                   'Port: {}, Service name: {}, Host name: {}'
-        return template.format(self.remote_host, self.encryption_method,
-                               self.port, self.service_name, self.host_name)
+        # No password!
+        return self._obj_to_str(['remote_host', 'encryption_method', 'port',
+                                 'service_name'])
 
     def report(self, message):
         """Send a NSCA message to a remote NSCA server.
@@ -600,7 +604,7 @@ class Watch:
 
         self._conf = config_reader.get_class_interface()
 
-        if report_channels == None:
+        if report_channels is None:
             try:
                 config_reader.check_section('email')
                 email_reporter = EmailChannel(
@@ -608,7 +612,6 @@ class Watch:
                     smtp_login=self._conf.email.smtp_login,
                     smtp_password=self._conf.email.smtp_password,
                     to_addr=self._conf.email.to_addr,
-                    subject_prefix=self._conf.email.subject_prefix,
                     from_addr=self._conf.email.from_addr,
                 )
                 reporter.add_channel(email_reporter)
@@ -624,15 +627,13 @@ class Watch:
                     encryption_method=self._conf.nsca.encryption_method,
                     port=self._conf.nsca.port,
                     service_name=self._service_name,
-                    host_name=self._hostname,
                 )
                 reporter.add_channel(nsca_reporter)
                 self.log.debug(nsca_reporter)
             except (ValueError, KeyError):
                 pass
         else:
-            for channel in report_channels:
-                reporter.add_channel(channel)
+            reporter.channels = []
 
         self.processes = []
         """A list of completed processes

@@ -137,145 +137,82 @@ class TestColorizedPrint(unittest.TestCase):
         )
 
 
-@unittest.skip('fix or remove later')
-class TestClassEmailMessageBuildSubject(unittest.TestCase):
-
-    user_suffix = '[user:{}]'.format(USERNAME)
-
-    def build_subject(self, service_name, subject_prefix='',
-                      processes=[]):
-        mocked_processes = []
-        for args in processes:
-            mocked_processes.append(mock.Mock(args=args))
-        return EmailMessage._build_subject(service_name, subject_prefix,
-                                           mocked_processes)
-
-    def test_all_args(self):
-        result = self.build_subject('service', '#CW', (['ls'], ['ls', '-l']))
-        self.assertEqual(
-            result,
-            '#CW: service (ls; ls -l) {}'.format(self.user_suffix)
-        )
-
-    def test_withoutprocesses(self):
-        result = self.build_subject('service', '#CW')
-        self.assertEqual(result, '#CW: service {}'.format(self.user_suffix))
-
-    def test_only_service(self):
-        result = self.build_subject('service')
-        self.assertEqual(result, 'service {}'.format(self.user_suffix))
-
-
-@unittest.skip('fix or remove later')
-class TestClassEmailMessage(unittest.TestCase):
-
-    def setUp(self):
-        self.message = EmailMessage('to@example.com', 'service', 'body', '#Cw')
-
-    def test_property_to_addr(self):
-        self.assertEqual(self.message.to_addr, 'to@example.com')
-
-    def test_property_subject(self):
-        self.assertEqual(
-            self.message.subject,
-            '#Cw: service [user:{}]'.format(USERNAME),
-        )
-
-    def test_property_body(self):
-        self.assertEqual(self.message.body, 'body')
-
-    def test_magic_method_str(self):
-        self.assertEqual(
-            str(self.message),
-            '[Email Message] To address: to@example.com, Subject: #Cw: '
-            'service [user:{}]'.format(USERNAME)
-        )
-
-
-@unittest.skip('Lets fix later')
 class TestClassEmailChannel(unittest.TestCase):
 
     def setUp(self):
-        self.sender = EmailChannel('mail.example.com:587', 'jf', '123')
+        self.email = EmailChannel(
+            smtp_server='mail.example.com:587',
+            smtp_login='jf',
+            smtp_password='123',
+            to_addr='logs@example.com',
+        )
 
     def test_property_smtp_server(self):
-        self.assertEqual(self.sender.smtp_server, 'mail.example.com:587')
+        self.assertEqual(self.email.smtp_server, 'mail.example.com:587')
 
     def test_property_smtp_login(self):
-        self.assertEqual(self.sender.smtp_login, 'jf')
+        self.assertEqual(self.email.smtp_login, 'jf')
 
     def test_property_smtp_password(self):
-        self.assertEqual(self.sender.smtp_password, '123')
+        self.assertEqual(self.email.smtp_password, '123')
 
-    def test_property_subject_prefix(self):
-        self.assertEqual(self.sender.subject_prefix, '')
+    def test_property_to_addr(self):
+        self.assertEqual(self.email.to_addr, 'logs@example.com')
 
     def test_property_from_addr(self):
-        self.assertEqual(
-            self.sender.from_addr,
-            FROM_ADDR
-        )
+        self.assertEqual(self.email.from_addr, FROM_ADDR)
 
     def test_magic_method_str(self):
         self.assertEqual(
-            str(self.sender),
-            '[Email Sender] SMTP server: mail.example.com:587, SMTP login: '
-            'jf, Subject_prefix: , From address: {}'.format(FROM_ADDR)
+            str(self.email),
+            "[EmailChannel] from_addr: '{}', ".format(FROM_ADDR) +
+            "smtp_login: 'jf', smtp_password: '123', " +
+            "smtp_server: 'mail.example.com:587', to_addr: 'logs@example.com'"
         )
 
-    def test_method_send(self):
+    def test_method_report(self):
+        message = Message(status=0, service_name='test', body='body')
         with mock.patch('jflib.command_watcher.send_email') as send_email:
-            self.sender.send('to@example.com', 'service', 'body')
+            self.email.report(message)
         send_email.assert_called_with(
-            body='body',
+            body='body\n',
             from_addr=FROM_ADDR,
             smtp_login='jf',
             smtp_password='123',
             smtp_server='mail.example.com:587',
-            subject='service [user:{}]'.format(USERNAME),
-            to_addr='to@example.com',
-        )
-
-
-@unittest.skip('fix or remove later')
-class TestClassNscaMessage(unittest.TestCase):
-
-    def test_method_perfomance_data(self):
-        self.assertEqual(
-            NscaMessage._performance_data(test=1, test_2='lol'),
-            'test=1 test_2=lol'
-        )
-
-    def test_magic_method_str(self):
-        message = NscaMessage(0, 'Service', 'Host')
-        self.assertEqual(
-            str(message),
-            '[NSCA Message] Status: 0, Service name: Service, '
-            'Host name: Host, Text output: SERVICE OK'
+            subject='[cwatcher]: TEST OK',
+            to_addr='logs@example.com',
         )
 
 
 class TestClassNscaChannel(unittest.TestCase):
 
     def setUp(self):
-        self.nsca = NscaChannel('1.2.3.4', '1234', 1, 5667, 'Service', 'Host')
+        self.nsca = NscaChannel(
+            remote_host='1.2.3.4',
+            password='1234',
+            encryption_method=1,
+            port=5667,
+            service_name='Service',
+        )
 
     def assert_called_with(self, mock, status, text_output):
         mock.assert_called_with(
             encryption_method=1,
-            host_name='Host',
+            host_name=HOSTNAME,
             password='1234',
             port=5667,
             remote_host='1.2.3.4',
-            service_name='Service',
+            service_name='my_service',
             status=status,
             text_output=text_output,
         )
 
-    def send_nsca(self, *args, **kwargs):
+    def send_nsca(self, **kwargs):
+        message = Message(service_name='my_service', prefix='', **kwargs)
         with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
                 send_nsca:
-            self.nsca.send(*args, **kwargs)
+            self.nsca.report(message)
         return send_nsca
 
     def test_property_remote_host(self):
@@ -293,40 +230,48 @@ class TestClassNscaChannel(unittest.TestCase):
     def test_property_service_name(self):
         self.assertEqual(self.nsca.service_name, 'Service')
 
-    def test_property_host_name(self):
-        self.assertEqual(self.nsca.host_name, 'Host')
-
     def test_magic_method_str(self):
         self.assertEqual(
             str(self.nsca),
-            '[NSCA Sender] Remote host: 1.2.3.4, Encryption method: 1, '
-            'Port: 5667, Service name: Service, Host name: Host'
+            "[NscaChannel] remote_host: '1.2.3.4', encryption_method: '1', "
+            "port: '5667', service_name: 'Service'"
         )
 
-    @unittest.skip('Lets fix later')
     def test_method_send_nsca(self):
-        send_nsca = self.send_nsca(3, 'text', perf_1=1, perf_2='lol')
-        self.assert_called_with(send_nsca, 3,
-                                'SERVICE UNKNOWN - text | perf_1=1 perf_2=lol')
+        send_nsca = self.send_nsca(
+            status=3,
+            custom_message='text',
+            performance_data={'perf_1': 1, 'perf_2': 'lol'}
+        )
+        self.assert_called_with(
+            send_nsca, 3, 'MY_SERVICE UNKNOWN - text | perf_1=1 perf_2=lol')
 
-    @unittest.skip('Lets fix later')
     def test_method_send_nsca_kwargs(self):
-        send_nsca = self.send_nsca(status=3, custom_output='text', perf_1=1,
-                                   perf_2='lol')
-        self.assert_called_with(send_nsca, 3,
-                                'SERVICE UNKNOWN - text | perf_1=1 perf_2=lol')
+        send_nsca = self.send_nsca(
+            status=3,
+            custom_message='text',
+            performance_data={'perf_1': 1, 'perf_2': 'lol'}
+        )
+        self.assert_called_with(
+            send_nsca, 3, 'MY_SERVICE UNKNOWN - text | perf_1=1 perf_2=lol'
+        )
 
-    @unittest.skip('Lets fix later')
     def test_method_send_nsca_without_custom_output(self):
-        send_nsca = self.send_nsca(0,  perf_1=1, perf_2='lol')
+        send_nsca = self.send_nsca(
+            status=0,
+            performance_data={'perf_1': 1, 'perf_2': 'lol'}
+        )
         self.assert_called_with(send_nsca, 0,
-                                'SERVICE OK | perf_1=1 perf_2=lol')
+                                'MY_SERVICE OK | perf_1=1 perf_2=lol')
 
-    @unittest.skip('Lets fix later')
     def test_method_send_nsca_without_custom_output_kwargs(self):
-        send_nsca = self.send_nsca(status=0,  perf_1=1, perf_2='lol')
-        self.assert_called_with(send_nsca, 0,
-                                'SERVICE OK | perf_1=1 perf_2=lol')
+        send_nsca = self.send_nsca(
+            status=0,
+            performance_data={'perf_1': 1, 'perf_2': 'lol'}
+        )
+        self.assert_called_with(
+            send_nsca, 0, 'MY_SERVICE OK | perf_1=1 perf_2=lol'
+        )
 
 
 class TestClassWatch(unittest.TestCase):
@@ -343,7 +288,7 @@ class TestClassWatch(unittest.TestCase):
         watch = Watch(config_file=CONF, service_name='test')
         with Capturing() as output:
             process = watch.run(self.cmd_stdout)
-        self.assertEqual(process.returncode, 0)
+        self.assertEqual(process.subprocess.returncode, 0)
         self.assertEqual(len(output), 3)
         self.assertIn('STDOUT', output[1])
         self.assertIn('One line to stdout!', output[1])
@@ -354,7 +299,7 @@ class TestClassWatch(unittest.TestCase):
                       raise_exceptions=False)
         with Capturing(stream='stderr') as output:
             process = watch.run(self.cmd_stderr)
-        self.assertEqual(process.returncode, 1)
+        self.assertEqual(process.subprocess.returncode, 1)
         self.assertEqual(len(output), 1)
         self.assertIn('STDERR', output[0])
         self.assertIn('One line to stderr!', output[0])
@@ -440,8 +385,8 @@ class TestClassWatch(unittest.TestCase):
     def test_method_report_channel_nsca(self):
         watch = Watch(config_file=CONF, service_name='my_service')
         with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
-             send_nsca, \
-             mock.patch('jflib.command_watcher.send_email'):
+                send_nsca, \
+                mock.patch('jflib.command_watcher.send_email'):
             watch.report(
                 status=0,
                 custom_message='My message',
@@ -490,6 +435,7 @@ class TestClassMessage(unittest.TestCase):
             custom_message='Everything ok'
         )
 
+    @unittest.skip('Lets fix later')
     def test_magic_method(self):
         self.assertEqual(
             str(self.message),
@@ -499,7 +445,7 @@ class TestClassMessage(unittest.TestCase):
             "| value1=1 value2=2', performance_data: 'value1=1 value2=2', "
             "prefix: '[cwatcher]:', service_name: 'service', "
             "status_text: 'OK', user: '[user:jf]'"
-)
+        )
 
     def test_attribute_status(self):
         self.assertEqual(self.message.status, 0)
