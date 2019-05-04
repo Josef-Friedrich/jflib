@@ -668,7 +668,7 @@ class Watch:
             )
         return process
 
-    def report(self, status: int, **data):
+    def report(self, status: int, **data) -> Message:
         """
         :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
           Nagios / Icinga monitoring status / state.
@@ -685,10 +685,10 @@ class Watch:
             processes=self.processes,
             **data,
         )
-        self.log.debug('[Message] {}'.format(message))
+        self.log.debug(message)
         return message
 
-    def final_report(self, **data):
+    def final_report(self, **data) -> Message:
         """The same as the `report` method. Adds `execution_time` to the
         `performance_data`.
 
