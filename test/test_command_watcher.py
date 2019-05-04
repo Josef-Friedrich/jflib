@@ -4,6 +4,7 @@ from unittest import mock
 
 from jflib.capturing import Capturing
 from jflib.command_watcher import \
+    Process, \
     Message, \
     CommandWatcherError, \
     EmailChannel, \
@@ -452,11 +453,14 @@ class TestClassWatchMethodFinalReport(unittest.TestCase):
 class TestClassMessage(unittest.TestCase):
 
     def setUp(self):
+        process_1 = Process('ls')
+        process_2 = Process(['ls', '-a'])
         self.message = Message(
             status=0,
             service_name='service',
             performance_data={'value1': 1, 'value2': 2},
-            custom_message='Everything ok'
+            custom_message='Everything ok',
+            processes=[process_1, process_2],
         )
 
     def test_magic_method(self):
@@ -466,7 +470,8 @@ class TestClassMessage(unittest.TestCase):
             "'[cwatcher]: SERVICE OK - Everything ok', message_monitoring: "
             "'[cwatcher]: SERVICE OK - Everything ok "
             "| value1=1 value2=2', performance_data: 'value1=1 value2=2', "
-            "prefix: '[cwatcher]:', service_name: 'service', "
+            "prefix: '[cwatcher]:', processes: '(ls; ls -a)', "
+            "service_name: 'service', "
             "status_text: 'OK', user: '[user:{}]'".format(USERNAME)
         )
 
@@ -500,3 +505,6 @@ class TestClassMessage(unittest.TestCase):
             self.message.message_monitoring,
             '[cwatcher]: SERVICE OK - Everything ok | value1=1 value2=2'
         )
+
+    def test_attribute_processes(self):
+        self.assertEqual(self.message.processes, '(ls; ls -a)')

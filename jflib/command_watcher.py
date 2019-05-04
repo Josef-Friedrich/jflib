@@ -336,13 +336,13 @@ class Message(BaseClass):
 
     @property
     def processes(self):
-        commands = []
+        output = []
         processes = self._data.get('processes')
         if processes:
             for process in processes:
-                commands.append(' '.join(process.args))
-        if commands:
-            return'({})'.format('; '.join(commands))
+                output.append(' '.join(process.args_normalized))
+        if output:
+            return'({})'.format('; '.join(output))
 
     @property
     def user(self):
@@ -531,12 +531,12 @@ class Process:
 
     @property
     def stdout(self):
-        """Alias / shortcut for `self._log_handler.stdout`."""
+        """Alias / shortcut for `self.log_handler.stdout`."""
         return self.log_handler.stdout
 
     @property
     def stderr(self):
-        """Alias / shortcut for `self._log_handler.stderr`."""
+        """Alias / shortcut for `self.log_handler.stderr`."""
         return self.log_handler.stderr
 
     def _stdout_stderr_reader(self, pipe, stream):
@@ -662,14 +662,15 @@ class Watch:
         if self._raise_exceptions and process.subprocess.returncode != 0:
             raise CommandWatcherError(
                 'The command {} exists with an non-zero return code.'
-                .format(' '.join(args)),
+                .format(' '.join(process.args_normalized)),
                 service_name=self._service_name,
                 log_records=self._log_handler.all_records,
             )
         return process
 
     def report(self, status: int, **data) -> Message:
-        """
+        """Report a message using the preconfigured channels.
+
         :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
           Nagios / Icinga monitoring status / state.
         :param str custom_message: Custom message
