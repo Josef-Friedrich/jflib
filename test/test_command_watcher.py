@@ -6,8 +6,8 @@ from jflib.capturing import Capturing
 from jflib.command_watcher import \
     Message, \
     CommandWatcherError, \
-    EmailReporter, \
-    NscaReporter, \
+    EmailChannel, \
+    NscaChannel, \
     setup_logging, \
     Watch, \
     HOSTNAME, \
@@ -193,10 +193,10 @@ class TestClassEmailMessage(unittest.TestCase):
 
 
 @unittest.skip('Lets fix later')
-class TestClassEmailReporter(unittest.TestCase):
+class TestClassEmailChannel(unittest.TestCase):
 
     def setUp(self):
-        self.sender = EmailReporter('mail.example.com:587', 'jf', '123')
+        self.sender = EmailChannel('mail.example.com:587', 'jf', '123')
 
     def test_property_smtp_server(self):
         self.assertEqual(self.sender.smtp_server, 'mail.example.com:587')
@@ -255,10 +255,10 @@ class TestClassNscaMessage(unittest.TestCase):
         )
 
 
-class TestClassNscaReporter(unittest.TestCase):
+class TestClassNscaChannel(unittest.TestCase):
 
     def setUp(self):
-        self.nsca = NscaReporter('1.2.3.4', '1234', 1, 5667, 'Service', 'Host')
+        self.nsca = NscaChannel('1.2.3.4', '1234', 1, 5667, 'Service', 'Host')
 
     def assert_called_with(self, mock, status, text_output):
         mock.assert_called_with(
@@ -437,33 +437,45 @@ class TestClassWatch(unittest.TestCase):
             call_args[2]
         )
 
-    @unittest.skip('Lets fix later')
-    def test_method_send_nsca(self):
-        watch = Watch(config_file=CONF, service_name='Service')
+    def test_method_report_channel_nsca(self):
+        watch = Watch(config_file=CONF, service_name='my_service')
         with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
-                send_nsca:
-            watch.send_nsca(3, 'text', perf_1=1, perf_2='lol')
+             send_nsca, \
+             mock.patch('jflib.command_watcher.send_email'):
+            watch.report(
+                status=0,
+                custom_message='My message',
+                performance_data={'perf_1': 1, 'perf_2': 'test'},
+                prefix='',
+            )
         send_nsca.assert_called_with(
             encryption_method=1,
             host_name=HOSTNAME,
             password='1234',
             port=5667,
             remote_host='1.2.3.4',
-            service_name='Service',
-            status=3,
-            text_output='SERVICE UNKNOWN - text | perf_1=1 perf_2=lol'
-        )
-        log = 'DEBUG [NSCA Message] Status: 3, Service name: Service, ' \
-              'Host name: {}, Text output: SERVICE UNKNOWN - text' \
-              ' | perf_1=1 perf_2=lol'
-        self.assertIn(
-            log.format(HOSTNAME),
-            watch._log_handler.all_records
+            service_name='my_service',
+            status=0,
+            text_output='MY_SERVICE OK - My message | perf_1=1 perf_2=test'
         )
 
-    @unittest.skip('Lets fix later')
+        records = watch._log_handler.all_records
+        self.assertIn('DEBUG [Message]', records)
+        self.assertIn("custom_message: 'My message',", records)
+        self.assertIn("message: 'MY_SERVICE OK - My message',", records)
+        self.assertIn(
+            "message_monitoring: 'MY_SERVICE OK - My message | "
+            "perf_1=1 perf_2=test',",
+            records
+        )
+        self.assertIn("performance_data: 'perf_1=1 perf_2=test'", records)
+        self.assertIn("service_name: 'my_service',", records)
+        self.assertIn("status_text: 'OK',", records)
+        self.assertIn("user: '[user:jf]'", records)
+
     def test_exception(self):
-        watch = Watch(config_file=CONF, service_name='test')
+        watch = Watch(config_file=CONF, service_name='test',
+                      report_channels=[])
         with self.assertRaises(CommandWatcherError):
             watch.run(self.cmd_stderr)
 

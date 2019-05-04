@@ -34,30 +34,8 @@ from . import termcolor, send_nsca
 from .config_reader import ConfigReader
 from .send_email import send_email
 
-# CRITICAL 50
-# ERROR 40
-# -> STDERR 35
-# WARNING 30
-# INFO 20
-# DEBUG 10
-# --> STDOUT 5
-# NOTSET 0
-STDERR = 35
-logging.addLevelName(STDERR, 'STDERR')
-STDOUT = 5
-logging.addLevelName(STDOUT, 'STDOUT')
 
-LOGFMT = '%(asctime)s_%(msecs)03d %(levelname)s %(message)s'
-DATEFMT = '%Y%m%d_%H%M%S'
 
-CONF_DEFAULTS = {
-    'email': {
-        'subject_prefix': 'command_watcher',
-    },
-    'nsca': {
-        'port': 5667,
-    },
-}
 
 HOSTNAME = socket.gethostname()
 USERNAME = pwd.getpwuid(os.getuid()).pw_name
@@ -95,6 +73,25 @@ class Timer:
         self.stop = time.time()
         self.interval = self.stop - self.start
         return '{:.3f}s'.format(self.interval)
+
+
+# Logging #####################################################################
+
+# CRITICAL 50
+# ERROR 40
+# -> STDERR 35
+# WARNING 30
+# INFO 20
+# DEBUG 10
+# --> STDOUT 5
+# NOTSET 0
+STDERR = 35
+logging.addLevelName(STDERR, 'STDERR')
+STDOUT = 5
+logging.addLevelName(STDOUT, 'STDOUT')
+
+LOGFMT = '%(asctime)s_%(msecs)03d %(levelname)s %(message)s'
+DATEFMT = '%Y%m%d_%H%M%S'
 
 
 class LoggingHandler(BufferingHandler):
@@ -238,18 +235,20 @@ def setup_logging(master_logger: logging.Logger = None) -> \
     return (logger, handler)
 
 
-class BaseReporter(object, metaclass=abc.ABCMeta):
-    """Base class for all reporters"""
-
-    @abc.abstractmethod
-    def report(self, status: int = 0, service_name: str = 'command_watcher',
-               **data):
-        raise NotImplementedError('A reporter class must have a `report` '
-                                  'method.')
+# Reporting ###################################################################
 
 
 class Message:
-
+    """
+    :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
+        Nagios / Icinga monitoring status / state.
+    :param str service_name: The name of the service.
+    :param str custom_message: Custom message
+    :param str prefix: Prefix of the report message.
+    :param str body: A longer report text.
+    :param dict performance_data: A dictionary like
+        `{'perf_1': 1, 'perf_2': 'test'}`.
+    """
     def __init__(self, **data):
         self._data = data
 
@@ -259,7 +258,7 @@ class Message:
             if not attr.startswith('_') and not callable(getattr(self, attr)):
                 value = getattr(self, attr)
                 if value:
-                    value = textwrap.shorten(value, width=64)
+                    value = textwrap.shorten(str(value), width=64)
                     value = value.replace('\n', ' ')
                     output.append('{}: \'{}\''.format(attr, value))
         return ', '.join(output)
@@ -342,26 +341,16 @@ class Message:
         return '[user:{}]'.format(USERNAME)
 
 
-class MasterReporter:
-    """"""
+class BaseChannel(object, metaclass=abc.ABCMeta):
+    """Base class for all reporters"""
 
-    def __init__(self):
-        self.reporters = []
+    @abc.abstractmethod
+    def report(self, status: int = 0, service_name: str = 'command_watcher',
+               **data):
+        raise NotImplementedError('A reporter class must have a `report` '
+                                  'method.')
 
-    def add_reporter(self, reporter):
-        self.reporters.append(reporter)
-
-    def report(self, **data):
-        message = Message(**data)
-        for reporter in self.reporters:
-            reporter.report(message)
-        return message
-
-
-reporter = MasterReporter()
-
-
-class EmailReporter(BaseReporter):
+class EmailChannel(BaseChannel):
 
     def __init__(self, smtp_server: str, smtp_login: str, smtp_password: str,
                  to_addr: str, subject_prefix: str = '', from_addr: str = ''):
@@ -392,7 +381,7 @@ class EmailReporter(BaseReporter):
         )
 
 
-class NscaReporter(BaseReporter):
+class NscaChannel(BaseChannel):
     """Wrapper around `send_nsca` to send NSCA messages. Set up the NSCA
     client."""
 
@@ -418,12 +407,43 @@ class NscaReporter(BaseReporter):
             status=message.status,
             host_name=HOSTNAME,
             service_name=message.service_name,
-            text_output=message.message,
+            text_output=message.message_monitoring,
             remote_host=self.remote_host,
             password=str(self.password),
             encryption_method=self.encryption_method,
             port=self.port,
         )
+
+
+class Reporter:
+    """"""
+
+    def __init__(self):
+        self.channels = []
+
+    def add_channel(self, channel):
+        self.channels.append(channel)
+
+    def report(self, **data):
+        message = Message(**data)
+        for channel in self.channels:
+            channel.report(message)
+        return message
+
+
+reporter = Reporter()
+
+# Configuration ###############################################################
+
+CONF_DEFAULTS = {
+    'email': {
+        'subject_prefix': 'command_watcher',
+    },
+    'nsca': {
+        'port': 5667,
+    },
+}
+
 
 CONFIG_READER_SPEC = {
     'email': {
@@ -552,7 +572,8 @@ class Watch:
     def __init__(self, config_file: str = None,
                  service_name: str = 'command_watcher',
                  raise_exceptions: bool = True,
-                 config_reader: ConfigReader = None):
+                 config_reader: ConfigReader = None,
+                 report_channels: typing.List[BaseChannel] = None):
         self._hostname = HOSTNAME
         """The hostname of machine the watcher running on."""
 
@@ -579,35 +600,39 @@ class Watch:
 
         self._conf = config_reader.get_class_interface()
 
-        try:
-            config_reader.check_section('email')
-            email_reporter = EmailReporter(
-                smtp_server=self._conf.email.smtp_server,
-                smtp_login=self._conf.email.smtp_login,
-                smtp_password=self._conf.email.smtp_password,
-                to_addr=self._conf.email.to_addr,
-                subject_prefix=self._conf.email.subject_prefix,
-                from_addr=self._conf.email.from_addr,
-            )
-            reporter.add_reporter(email_reporter)
-            self.log.debug(email_reporter)
-        except (ValueError, KeyError):
-            pass
+        if report_channels == None:
+            try:
+                config_reader.check_section('email')
+                email_reporter = EmailChannel(
+                    smtp_server=self._conf.email.smtp_server,
+                    smtp_login=self._conf.email.smtp_login,
+                    smtp_password=self._conf.email.smtp_password,
+                    to_addr=self._conf.email.to_addr,
+                    subject_prefix=self._conf.email.subject_prefix,
+                    from_addr=self._conf.email.from_addr,
+                )
+                reporter.add_channel(email_reporter)
+                self.log.debug(email_reporter)
+            except (ValueError, KeyError):
+                pass
 
-        try:
-            config_reader.check_section('nsca')
-            nsca_reporter = NscaReporter(
-                remote_host=self._conf.nsca.remote_host,
-                password=self._conf.nsca.password,
-                encryption_method=self._conf.nsca.encryption_method,
-                port=self._conf.nsca.port,
-                service_name=self._service_name,
-                host_name=self._hostname,
-            )
-            reporter.add_reporter(nsca_reporter)
-            self.log.debug(nsca_reporter)
-        except (ValueError, KeyError):
-            pass
+            try:
+                config_reader.check_section('nsca')
+                nsca_reporter = NscaChannel(
+                    remote_host=self._conf.nsca.remote_host,
+                    password=self._conf.nsca.password,
+                    encryption_method=self._conf.nsca.encryption_method,
+                    port=self._conf.nsca.port,
+                    service_name=self._service_name,
+                    host_name=self._hostname,
+                )
+                reporter.add_channel(nsca_reporter)
+                self.log.debug(nsca_reporter)
+            except (ValueError, KeyError):
+                pass
+        else:
+            for channel in report_channels:
+                reporter.add_channel(channel)
 
         self.processes = []
         """A list of completed processes
@@ -641,7 +666,16 @@ class Watch:
             )
         return process
 
-    def report(self, status, **data):
+    def report(self, status: int, **data):
+        """
+        :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
+          Nagios / Icinga monitoring status / state.
+        :param str custom_message: Custom message
+        :param str prefix: Prefix of the report message.
+        :param str body: A longer report text.
+        :param dict performance_data: A dictionary like
+          `{'perf_1': 1, 'perf_2': 'test'}`.
+        """
         message = reporter.report(
             status=status,
             service_name=self._service_name,
