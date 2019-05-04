@@ -661,7 +661,7 @@ class Watch:
         self.processes.append(process)
         if self._raise_exceptions and process.subprocess.returncode != 0:
             raise CommandWatcherError(
-                'The command {} exists with an non-zero return code.'
+                'The command \'{}\' exists with an non-zero return code.'
                 .format(' '.join(process.args_normalized)),
                 service_name=self._service_name,
                 log_records=self._log_handler.all_records,
