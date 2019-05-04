@@ -167,9 +167,9 @@ class TestClassEmailChannel(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(
             str(self.email),
-            "[EmailChannel] from_addr: 'from@example.com', "
-            "smtp_login: 'jf', smtp_password: '123', "
-            "smtp_server: 'mail.example.com:587', to_addr: 'logs@example.com'"
+            "[EmailChannel] smtp_server: 'mail.example.com:587', "
+            "smtp_login: 'jf', to_addr: 'logs@example.com', "
+            "from_addr: 'from@example.com'"
         )
 
     def test_method_report(self):

@@ -373,7 +373,8 @@ class EmailChannel(BaseChannel):
             self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
 
     def __str__(self):
-        return self._obj_to_str()
+        return self._obj_to_str(['smtp_server', 'smtp_login', 'to_addr',
+                                 'from_addr', ])
 
     def report(self, message):
         send_email(
