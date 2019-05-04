@@ -427,6 +427,28 @@ class TestClassWatch(unittest.TestCase):
             watch.run(self.cmd_stderr)
 
 
+class TestClassWatchMethodFinalReport(unittest.TestCase):
+
+    def final_report(self, **data):
+        watch = Watch(config_file=CONF, service_name='test',
+                      report_channels=[])
+        watch._timer.result = mock.Mock()
+        watch._timer.result.return_value = '11.123s'
+        return watch.final_report(**data)
+
+    def test_without_arguments(self):
+        message = self.final_report()
+        self.assertEqual(message.status, 0)
+        self.assertEqual(message.message, '[cwatcher]: TEST OK')
+        self.assertEqual(message.message_monitoring,
+                         '[cwatcher]: TEST OK | execution_time=11.123s')
+
+    def test_with_arguments(self):
+        message = self.final_report(status=1, custom_message='test')
+        self.assertEqual(message.status, 1)
+        self.assertEqual(message.message, '[cwatcher]: TEST WARNING - test')
+
+
 class TestClassMessage(unittest.TestCase):
 
     def setUp(self):

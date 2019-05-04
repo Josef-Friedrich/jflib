@@ -686,9 +686,29 @@ class Watch:
             **data,
         )
         self.log.debug('[Message] {}'.format(message))
+        return message
 
     def final_report(self, **data):
+        """The same as the `report` method. Adds `execution_time` to the
+        `performance_data`.
+
+        :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
+          Nagios / Icinga monitoring status / state.
+        :param str custom_message: Custom message
+        :param str prefix: Prefix of the report message.
+        :param str body: A longer report text.
+        :param dict performance_data: A dictionary like
+          `{'perf_1': 1, 'perf_2': 'test'}`.
+        """
+        timer_result = self._timer.result()
         self.log.info(
-            'Overall execution time: {}'.format(self._timer.result())
+            'Overall execution time: {}'.format(timer_result)
         )
-        self.report(**data)
+        status = data.get('status', 0)
+        data_dict = dict(data)
+        if 'performance_data' not in data_dict:
+            data_dict['performance_data'] = {}
+        data_dict['performance_data']['execution_time'] = timer_result
+        if 'status' in data_dict:
+            del data_dict['status']
+        return self.report(status=status, **data_dict)
