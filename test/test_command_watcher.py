@@ -354,14 +354,19 @@ class TestClassWatch(unittest.TestCase):
         watch.run(['ls', '-la'])
         self.assertEqual(len(watch.processes), 3)
 
-    @unittest.skip('Lets fix later')
-    def test_method_send_email_with_config_reader(self):
-        watch = Watch(config_file=CONF, service_name='test')
+    def test_method_email_channel_nsca(self):
+        watch = Watch(config_file=CONF, service_name='my_service')
         watch.log.info('info')
         watch.run('ls')
 
-        with mock.patch('smtplib.SMTP') as SMTP:
-            watch.send_email()
+        with mock.patch('jflib.command_watcher.send_nsca.send_nsca'), \
+                mock.patch('smtplib.SMTP') as SMTP:
+            watch.report(
+                status=0,
+                custom_message='My message',
+                performance_data={'perf_1': 1, 'perf_2': 'test'},
+                prefix='',
+            )
 
         SMTP.assert_called_with('smtp.example.com:587')
         server = SMTP.return_value
@@ -372,11 +377,6 @@ class TestClassWatch(unittest.TestCase):
             'from@example.com'
         )
         self.assertEqual(call_args[1], ['to@example.com'])
-
-        # self.assertIn(
-        #     'Subject: =?utf-8?q?command=5Fwatcher=3A_test_=28ls=29?=',
-        #     call_args[2]
-        # )
         self.assertIn(
             'From: from@example.com\nTo: to@example.com\n',
             call_args[2]
@@ -416,7 +416,7 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn("performance_data: 'perf_1=1 perf_2=test'", records)
         self.assertIn("service_name: 'my_service',", records)
         self.assertIn("status_text: 'OK',", records)
-        self.assertIn("user: '[user:jf]'", records)
+        self.assertIn("user: '[user:{}]'".format(USERNAME), records)
 
     def test_exception(self):
         watch = Watch(config_file=CONF, service_name='test',
@@ -435,16 +435,15 @@ class TestClassMessage(unittest.TestCase):
             custom_message='Everything ok'
         )
 
-    @unittest.skip('Lets fix later')
     def test_magic_method(self):
         self.assertEqual(
             str(self.message),
-            "body: '', custom_message: 'Everything ok', message: "
+            "[Message] body: '', custom_message: 'Everything ok', message: "
             "'[cwatcher]: SERVICE OK - Everything ok', message_monitoring: "
             "'[cwatcher]: SERVICE OK - Everything ok "
             "| value1=1 value2=2', performance_data: 'value1=1 value2=2', "
             "prefix: '[cwatcher]:', service_name: 'service', "
-            "status_text: 'OK', user: '[user:jf]'"
+            "status_text: 'OK', user: '[user:{}]'".format(USERNAME)
         )
 
     def test_attribute_status(self):
