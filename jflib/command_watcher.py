@@ -504,7 +504,7 @@ class Process:
     You can use all keyword arguments from
     :py:class:`subprocess.Popen` except `bufsize`, `stderr`, `stdout`.
 
-    :param mixed args: List or string. A command with command line
+    :param args: List or string. A command with command line
         arguments. Like subprocess.Popen(args).
     :param bool shell: If true, the command will be executed through the
         shell.
@@ -512,8 +512,10 @@ class Process:
         executed.
     :param dict env: Defines the environment variables for the new process.
     """
-    def __init__(self, args, master_logger=None, **kwargs):
-        self.args = args
+    def __init__(self, args: typing.Union[str, list, tuple],
+                 master_logger=None, **kwargs):
+        self.args: typing.Union[str, list, tuple] = args
+        """Process arguments in various types."""
 
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""
@@ -554,6 +556,7 @@ class Process:
 
     @property
     def args_normalized(self) -> list:
+        """Normalized `args`, always a list"""
         if isinstance(self.args, str):
             return shlex.split(self.args)
         else:

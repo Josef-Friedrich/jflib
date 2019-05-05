@@ -338,6 +338,46 @@ class TestClassNscaChannel(unittest.TestCase):
 # Main code ###################################################################
 
 
+class TestClassProcess(unittest.TestCase):
+
+    def setUp(self):
+        self.cmd_stderr = os.path.join(DIR_FILES, 'stderr.sh')
+        self.cmd_stdout = os.path.join(DIR_FILES, 'stdout.sh')
+
+    def launch_process(self, *args, **kwargs):
+        return cwatcher.Process(*args, **kwargs)
+
+    def test_attribute_args(self):
+        process = self.launch_process('ls -l')
+        self.assertEqual(process.args, 'ls -l')
+
+    def test_attribute_log(self):
+        process = self.launch_process('ls -l')
+        self.assertEqual(process.log.__class__.__name__, 'Logger')
+
+    def test_attribute_log_handler(self):
+        process = self.launch_process('ls -l')
+        self.assertEqual(process.log_handler.__class__.__name__,
+                         'LoggingHandler')
+
+    def test_attribute_subprocess(self):
+        process = self.launch_process('ls -l')
+        self.assertEqual(process.subprocess.__class__.__name__,
+                         'Popen')
+
+    def test_property_args_normalized(self):
+        process = self.launch_process('ls -l')
+        self.assertEqual(process.args_normalized, ['ls', '-l'])
+
+    def test_property_stdout(self):
+        process = self.launch_process([self.cmd_stdout])
+        self.assertTrue(process.stdout)
+
+    def test_property_stderr(self):
+        process = self.launch_process([self.cmd_stderr])
+        self.assertTrue(process.stderr)
+
+
 class TestClassWatch(unittest.TestCase):
 
     def setUp(self):
@@ -348,7 +388,7 @@ class TestClassWatch(unittest.TestCase):
         watch = cwatcher.Watch(config_file=CONF, service_name='test')
         self.assertEqual(watch._conf.email.to_addr, 'to@example.com')
 
-    def test_watch_stdout(self):
+    def test_method_run_output_stdout(self):
         watch = cwatcher.Watch(config_file=CONF, service_name='test')
         with Capturing() as output:
             process = watch.run(self.cmd_stdout)
@@ -358,7 +398,7 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('One line to stdout!', output[1])
         self.assertIn('Execution time: ', output[2])
 
-    def test_watch_stderr(self):
+    def test_method_run_output_stderr(self):
         watch = cwatcher.Watch(config_file=CONF, service_name='test',
                                raise_exceptions=False)
         with Capturing(stream='stderr') as output:
