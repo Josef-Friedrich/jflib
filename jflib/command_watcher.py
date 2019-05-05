@@ -452,25 +452,45 @@ CONF_DEFAULTS = {
 
 CONFIG_READER_SPEC = {
     'email': {
-        'subject_prefix': {'description': ''},
-        'from_addr': {'description': ''},
-        'to_addr': {'description': '', 'not_empty': True},
-        'smtp_login': {'description': '', 'not_empty': True},
-        'smtp_password': {'description': '', 'not_empty': True},
-        'smtp_server': {'description': '', 'not_empty': True},
+        'from_addr': {
+            'description': 'The email address of the sender.',
+        },
+        'to_addr': {
+            'description': 'The email address of the recipient.',
+            'not_empty': True,
+        },
+        'smtp_login': {
+            'description': 'The SMTP login name.',
+            'not_empty': True,
+        },
+        'smtp_password': {
+            'description': 'The SMTP password.',
+            'not_empty': True,
+        },
+        'smtp_server': {
+            'description': 'The URL of the SMTP server, for example: '
+                           '`smtp.example.com:587`.',
+            'not_empty': True,
+        },
     },
     'nsca': {
         'remote_host': {
             'description': 'The IP address of the NSCA remote host.',
             'not_empty': True,
         },
-        'password': {'description': 'The NSCA password.', 'not_empty': True},
+        'password': {
+            'description': 'The NSCA password.',
+            'not_empty': True,
+        },
         'encryption_method': {
             'description': 'The NSCA encryption method. The supported '
                            'encryption methods are: 0 1 2 3 4 8 11 14 15 16',
             'not_empty': True,
         },
-        'port': {'description': 'The NSCA port.', 'default': 5667},
+        'port': {
+            'description': 'The NSCA port.',
+            'default': 5667,
+        },
     }
 }
 
