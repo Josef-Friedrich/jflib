@@ -264,6 +264,7 @@ class Message(BaseClass):
     :param str body: A longer report text.
     :param dict performance_data: A dictionary like
         `{'perf_1': 1, 'perf_2': 'test'}`.
+    :param str log_records: Log records separated by new lines
     """
     def __init__(self, **data):
         self._data = data
@@ -276,7 +277,8 @@ class Message(BaseClass):
         return self._data.get('status', 0)
 
     @property
-    def status_text(self) -> int:
+    def status_text(self) -> str:
+        """The status as a text word like `OK`."""
         return send_nsca.States[self.status]
 
     @property
@@ -328,24 +330,32 @@ class Message(BaseClass):
         return ' '.join(output)
 
     @property
-    def body(self):
+    def body(self) -> str:
+        """Text body for the e-mail message."""
         output = []
+        output.append('Host: {}'.format(HOSTNAME))
+        output.append('User: {}'.format(USERNAME))
+        output.append('Service name: {}'.format(self.service_name))
 
         if self.performance_data:
             output.append('Performance data: {}'.format(self.performance_data))
 
         body = self._data.get('body', '')
         if body:
+            output.append('')
             output.append(body)
 
         log_records = self._data.get('log_records', '')
         if log_records:
+            output.append('')
+            output.append('Log records:')
+            output.append('')
             output.append(log_records)
 
         return '\n'.join(output)
 
     @property
-    def processes(self):
+    def processes(self) -> str:
         output = []
         processes = self._data.get('processes')
         if processes:
@@ -355,7 +365,7 @@ class Message(BaseClass):
             return'({})'.format('; '.join(output))
 
     @property
-    def user(self):
+    def user(self) -> str:
         return '[user:{}]'.format(USERNAME)
 
 
@@ -516,6 +526,7 @@ class Process:
 
     :param args: List or string. A command with command line
         arguments. Like subprocess.Popen(args).
+    :param master_logger:
     :param bool shell: If true, the command will be executed through the
         shell.
     :param str cwd: Sets the current directory before the child is
@@ -523,7 +534,7 @@ class Process:
     :param dict env: Defines the environment variables for the new process.
     """
     def __init__(self, args: typing.Union[str, list, tuple],
-                 master_logger=None, **kwargs):
+                 master_logger: logging.Logger = None, **kwargs):
         self.args: typing.Union[str, list, tuple] = args
         """Process arguments in various types."""
 

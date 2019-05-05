@@ -146,53 +146,51 @@ class TestClassMessage(unittest.TestCase):
             performance_data={'value1': 1, 'value2': 2},
             custom_message='Everything ok',
             processes=[process_1, process_2],
+            body='A long body text.',
+            log_records='1 OK \n2 Warning',
         )
 
-    def test_magic_method(self):
-        self.assertEqual(
-            str(self.message),
-            "[Message] body: 'Performance data: value1=1 value2=2', "
-            "custom_message: 'Everything ok', message: "
-            "'[cwatcher]: SERVICE OK - Everything ok', message_monitoring: "
-            "'[cwatcher]: SERVICE OK - Everything ok "
-            "| value1=1 value2=2', performance_data: 'value1=1 value2=2', "
-            "prefix: '[cwatcher]:', processes: '(ls; ls -a)', "
-            "service_name: 'service', "
-            "status_text: 'OK', user: '[user:{}]'".format(cwatcher.USERNAME)
-        )
-
-    def test_attribute_status(self):
+    def test_property_status(self):
         self.assertEqual(self.message.status, 0)
 
-    def test_attribute_status_not_set(self):
+    def test_property_status_not_set(self):
         message = cwatcher.Message()
         self.assertEqual(message.status, 0)
         self.assertEqual(message.status_text, 'OK')
 
-    def test_attribute_status_text(self):
+    def test_property_status_text(self):
         self.assertEqual(self.message.status_text, 'OK')
 
-    def test_attribute_service_name_not_set(self):
+    def test_property_service_name_not_set(self):
         message = cwatcher.Message()
         self.assertEqual(message.service_name, 'service_not_set')
 
-    def test_attribute_performance_data(self):
+    def test_property_performance_data(self):
         self.assertEqual(self.message.performance_data, 'value1=1 value2=2')
 
-    def test_attribute_prefix(self):
+    def test_property_prefix(self):
         self.assertEqual(self.message.prefix, '[cwatcher]:')
 
-    def test_attribute_message(self):
+    def test_property_message(self):
         self.assertEqual(self.message.message,
                          '[cwatcher]: SERVICE OK - Everything ok')
 
-    def test_attribute_message_monitoring(self):
+    def test_property_message_monitoring(self):
         self.assertEqual(
             self.message.message_monitoring,
             '[cwatcher]: SERVICE OK - Everything ok | value1=1 value2=2'
         )
 
-    def test_attribute_processes(self):
+    def test_property_body(self):
+        body = 'Host: {}\n' \
+               'User: {}\n' \
+               'Service name: service\n' \
+               'Performance data: value1=1 value2=2\n\n' \
+               'A long body text.\n\nLog records:\n\n1 OK \n2 Warning'
+        self.assertEqual(self.message.body,
+                         body.format(cwatcher.HOSTNAME, cwatcher.USERNAME))
+
+    def test_property_processes(self):
         self.assertEqual(self.message.processes, '(ls; ls -a)')
 
 
@@ -236,7 +234,8 @@ class TestClassEmailChannel(unittest.TestCase):
         with mock.patch('jflib.command_watcher.send_email') as send_email:
             self.email.report(message)
         send_email.assert_called_with(
-            body='body',
+            body='Host: {}\nUser: {}\nService name: test\n\nbody'
+                 .format(cwatcher.HOSTNAME, cwatcher.USERNAME),
             from_addr='from@example.com',
             smtp_login='jf',
             smtp_password='123',
