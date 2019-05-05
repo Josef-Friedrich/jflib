@@ -196,6 +196,28 @@ class IniReader(ReaderBase):
                             '(section “{}” key “{}”).'.format(section, key))
 
 
+class SpecReader(ReaderBase):
+    """Read the default values from the `spec` (specification) dictionary.
+
+    :param spec: The `spec` (specification) dictionary.
+    """
+    def __init__(self, spec: dict):
+        self._spec = spec
+
+    def get(self, section: str, key: str):
+        """
+        Get a configuration value stored under a section and a key.
+
+        :param section: Name of the section.
+        :param key: Name of the key.
+        """
+        try:
+            return self._spec[section][key]['default']
+        except KeyError:
+            self._exception('Configuration value could not be found '
+                            '(section “{}” key “{}”).'.format(section, key))
+
+
 # Common code #################################################################
 
 
@@ -306,6 +328,8 @@ def load_readers_by_keyword(**kwargs) -> list:
             readers.append(EnvironReader(prefix=value))
         elif keyword == 'ini':
             readers.append(IniReader(path=value))
+        elif keyword == 'spec':
+            readers.append(SpecReader(spec=value))
     return readers
 
 
@@ -341,7 +365,10 @@ class ConfigReader(object):
     :param str ini: The path of the INI file.
     """
     def __init__(self, spec: dict = {}, **kwargs):
-        readers = load_readers_by_keyword(**kwargs)
+        if spec:
+            readers = load_readers_by_keyword(**kwargs, spec=spec)
+        else:
+            readers = load_readers_by_keyword(**kwargs)
         self.spec = spec
         """The specification dictionary. For more informations look at the
         class arguments of this class."""

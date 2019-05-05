@@ -392,6 +392,33 @@ class TestClassConfigReader(unittest.TestCase):
         with self.assertRaises(ValueError):
             config_reader.check_section('empty')
 
+    def test_spec_defaults(self):
+        dictionary = {
+            'no_default': {
+                'key': 'No default value',
+            },
+        }
+        spec = {
+            'default': {
+                'key': {
+                    'description': 'A default value',
+                    'default': 123,
+                },
+            },
+            'no_default': {
+                'key': {
+                    'description': 'No default value',
+                },
+            },
+        }
+        config_reader = ConfigReader(
+            spec=spec,
+            dictionary=dictionary,
+        )
+        config = config_reader.get_class_interface()
+        self.assertEqual(config.no_default.key, 'No default value')
+        self.assertEqual(config.default.key, 123)
+
 
 class TestTypes(unittest.TestCase):
 
