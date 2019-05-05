@@ -151,7 +151,8 @@ class TestClassMessage(unittest.TestCase):
     def test_magic_method(self):
         self.assertEqual(
             str(self.message),
-            "[Message] body: '', custom_message: 'Everything ok', message: "
+            "[Message] body: 'Performance data: value1=1 value2=2', "
+            "custom_message: 'Everything ok', message: "
             "'[cwatcher]: SERVICE OK - Everything ok', message_monitoring: "
             "'[cwatcher]: SERVICE OK - Everything ok "
             "| value1=1 value2=2', performance_data: 'value1=1 value2=2', "
@@ -235,7 +236,7 @@ class TestClassEmailChannel(unittest.TestCase):
         with mock.patch('jflib.command_watcher.send_email') as send_email:
             self.email.report(message)
         send_email.assert_called_with(
-            body='body\n',
+            body='body',
             from_addr='from@example.com',
             smtp_login='jf',
             smtp_password='123',

@@ -329,10 +329,20 @@ class Message(BaseClass):
 
     @property
     def body(self):
-        return '\n'.join([
-            self._data.get('body', ''),
-            self._data.get('log_records', '')
-        ])
+        output = []
+
+        if self.performance_data:
+            output.append('Performance data: {}'.format(self.performance_data))
+
+        body = self._data.get('body', '')
+        if body:
+            output.append(body)
+
+        log_records = self._data.get('log_records', '')
+        if log_records:
+            output.append(log_records)
+
+        return '\n'.join(output)
 
     @property
     def processes(self):
