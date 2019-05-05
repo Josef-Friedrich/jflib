@@ -279,6 +279,17 @@ class TestClassConfigReader(unittest.TestCase):
         config = config_reader.get_class_interface()
         self.assertEqual(config.common.key, 'argparse')
 
+    def test_argparse_empty(self):
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--empty-key')
+        args = parser.parse_args([])
+        config_reader = ConfigReader(
+            argparse=(args, {}),
+            dictionary={'empty': {'key': 'from_dict'}},
+        )
+        config = config_reader.get_class_interface()
+        self.assertEqual(config.empty.key, 'from_dict')
+
     def test_dictionary_first(self):
         config_reader = ConfigReader(
             dictionary=self.dictionary,

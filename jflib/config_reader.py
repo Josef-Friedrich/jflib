@@ -111,7 +111,9 @@ class ArgparseReader(ReaderBase):
             argparse_dest = '{}_{}'.format(section, key).lower()
 
         if hasattr(self._args, argparse_dest):
-            return getattr(self._args, argparse_dest)
+            value = getattr(self._args, argparse_dest)
+            if value is not None:
+                return value
 
         self._exception('Configuration value could not be found by '
                         'Argparse (section “{}” key “{}”).'
