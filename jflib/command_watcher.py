@@ -460,10 +460,17 @@ CONFIG_READER_SPEC = {
         'smtp_server': {'description': '', 'not_empty': True},
     },
     'nsca': {
-        'remote_host': {'description': '', 'not_empty': True},
-        'password': {'description': '', 'not_empty': True},
-        'encryption_method': {'description': '', 'not_empty': True},
-        'port': {'description': '', 'default': 5667},
+        'remote_host': {
+            'description': 'The IP address of the NSCA remote host.',
+            'not_empty': True,
+        },
+        'password': {'description': 'The NSCA password.', 'not_empty': True},
+        'encryption_method': {
+            'description': 'The NSCA encryption method. The supported '
+                           'encryption methods are: 0 1 2 3 4 8 11 14 15 16',
+            'not_empty': True,
+        },
+        'port': {'description': 'The NSCA port.', 'default': 5667},
     }
 }
 
