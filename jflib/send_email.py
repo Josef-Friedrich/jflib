@@ -9,7 +9,7 @@ def send_email(from_addr: str, to_addr: str, subject: str, body: str,
     """
     Send a email.
 
-    :param from_addr: The from email address of the sender.
+    :param from_addr: The email address of the sender.
     :param to_addr: The email address of the recipient.
     :param subject: The email subject.
     :param body: The email body.
