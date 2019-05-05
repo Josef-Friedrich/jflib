@@ -419,6 +419,23 @@ class TestClassConfigReader(unittest.TestCase):
         self.assertEqual(config.no_default.key, 'No default value')
         self.assertEqual(config.default.key, 123)
 
+    def test_method_spec_to_argparse(self):
+        spec = {
+            'email': {
+                'smtp_login': {
+                    'description': 'The SMTP login name',
+                    'default': 'user1',
+                },
+            },
+        }
+        config_reader = ConfigReader(spec=spec)
+        parser = argparse.ArgumentParser()
+        config_reader.spec_to_argparse(parser)
+        args = parser.parse_args([])
+        self.assertEqual(args.email_smtp_login, 'user1')
+        args = parser.parse_args(['--email-smtp-login', 'user2'])
+        self.assertEqual(args.email_smtp_login, 'user2')
+
 
 class TestTypes(unittest.TestCase):
 
