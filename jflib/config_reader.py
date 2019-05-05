@@ -40,6 +40,7 @@ import configparser
 import re
 import argparse
 import abc
+import typing
 
 
 class ConfigValueError(Exception):
@@ -67,6 +68,7 @@ class ReaderBase(object, metaclass=abc.ABCMeta):
     """Base class for all readers"""
 
     def _exception(self, msg):
+        """:raises: ConfigValueError"""
         raise ConfigValueError(msg)
 
     @abc.abstractmethod
@@ -91,12 +93,14 @@ class ArgparseReader(ReaderBase):
         self._args = args
         self._mapping = mapping
 
-    def get(self, section: str, key: str):
+    def get(self, section: str, key: str) -> typing.Any:
         """
         Get a configuration value stored under a section and a key.
 
         :param section: Name of the section.
         :param key: Name of the key.
+
+        :raises ConfigValueError: Configuration value couldn’t be found.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -122,12 +126,14 @@ class DictionaryReader(ReaderBase):
     def __init__(self, dictionary: dict):
         self._dictionary = dictionary
 
-    def get(self, section: str, key: str):
+    def get(self, section: str, key: str) -> typing.Any:
         """
         Get a configuration value stored under a section and a key.
 
         :param section: Name of the section.
         :param key: Name of the key.
+
+        :raises ConfigValueError: Configuration value couldn’t be found.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -150,12 +156,14 @@ class EnvironReader(ReaderBase):
     def __init__(self, prefix: str = None):
         self._prefix = prefix
 
-    def get(self, section: str, key: str):
+    def get(self, section: str, key: str) -> typing.Any:
         """
         Get a configuration value stored under a section and a key.
 
         :param section: Name of the section.
         :param key: Name of the key.
+
+        :raises ConfigValueError: Configuration value couldn’t be found.
 
         :return: The configuration value stored under a section and a key.
         """
@@ -182,12 +190,16 @@ class IniReader(ReaderBase):
             )
         self._config.read_file(open(path))
 
-    def get(self, section: str, key: str):
+    def get(self, section: str, key: str) -> typing.Any:
         """
         Get a configuration value stored under a section and a key.
 
         :param section: Name of the section.
         :param key: Name of the key.
+
+        :raises ConfigValueError: Configuration value couldn’t be found.
+
+        :return: The configuration value stored under a section and a key.
         """
         try:
             return self._config[section][key]
@@ -204,12 +216,16 @@ class SpecReader(ReaderBase):
     def __init__(self, spec: dict):
         self._spec = spec
 
-    def get(self, section: str, key: str):
+    def get(self, section: str, key: str) -> typing.Any:
         """
         Get a configuration value stored under a section and a key.
 
         :param section: Name of the section.
         :param key: Name of the key.
+
+        :raises ConfigValueError: Configuration value couldn’t be found.
+
+        :return: The configuration value stored under a section and a key.
         """
         try:
             return self._spec[section][key]['default']
