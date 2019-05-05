@@ -19,6 +19,9 @@ CONF = os.path.join(DIR_FILES, 'command_watcher', 'conf.ini')
 FROM_ADDR = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
 
 
+# Logging #####################################################################
+
+
 class TestLogging(unittest.TestCase):
 
     def test_initialisation(self):
@@ -136,6 +139,69 @@ class TestColorizedPrint(unittest.TestCase):
             output[0][20:],
             '\x1b[7m\x1b[30m Level 1  \x1b[0m \x1b[30mNOTSET 0\x1b[0m'
         )
+
+
+# Reporting ###################################################################
+
+
+class TestClassMessage(unittest.TestCase):
+
+    def setUp(self):
+        process_1 = Process('ls')
+        process_2 = Process(['ls', '-a'])
+        self.message = Message(
+            status=0,
+            service_name='service',
+            performance_data={'value1': 1, 'value2': 2},
+            custom_message='Everything ok',
+            processes=[process_1, process_2],
+        )
+
+    def test_magic_method(self):
+        self.assertEqual(
+            str(self.message),
+            "[Message] body: '', custom_message: 'Everything ok', message: "
+            "'[cwatcher]: SERVICE OK - Everything ok', message_monitoring: "
+            "'[cwatcher]: SERVICE OK - Everything ok "
+            "| value1=1 value2=2', performance_data: 'value1=1 value2=2', "
+            "prefix: '[cwatcher]:', processes: '(ls; ls -a)', "
+            "service_name: 'service', "
+            "status_text: 'OK', user: '[user:{}]'".format(USERNAME)
+        )
+
+    def test_attribute_status(self):
+        self.assertEqual(self.message.status, 0)
+
+    def test_attribute_status_not_set(self):
+        message = Message()
+        self.assertEqual(message.status, 0)
+        self.assertEqual(message.status_text, 'OK')
+
+    def test_attribute_status_text(self):
+        self.assertEqual(self.message.status_text, 'OK')
+
+    def test_attribute_service_name_not_set(self):
+        message = Message()
+        self.assertEqual(message.service_name, 'service_not_set')
+
+    def test_attribute_performance_data(self):
+        self.assertEqual(self.message.performance_data, 'value1=1 value2=2')
+
+    def test_attribute_prefix(self):
+        self.assertEqual(self.message.prefix, '[cwatcher]:')
+
+    def test_attribute_message(self):
+        self.assertEqual(self.message.message,
+                         '[cwatcher]: SERVICE OK - Everything ok')
+
+    def test_attribute_message_monitoring(self):
+        self.assertEqual(
+            self.message.message_monitoring,
+            '[cwatcher]: SERVICE OK - Everything ok | value1=1 value2=2'
+        )
+
+    def test_attribute_processes(self):
+        self.assertEqual(self.message.processes, '(ls; ls -a)')
 
 
 class TestClassEmailChannel(unittest.TestCase):
@@ -275,6 +341,9 @@ class TestClassNscaChannel(unittest.TestCase):
         self.assert_called_with(
             send_nsca, 0, 'MY_SERVICE OK | perf_1=1 perf_2=lol'
         )
+
+
+# Main code ###################################################################
 
 
 class TestClassWatch(unittest.TestCase):
@@ -448,63 +517,3 @@ class TestClassWatchMethodFinalReport(unittest.TestCase):
         message = self.final_report(status=1, custom_message='test')
         self.assertEqual(message.status, 1)
         self.assertEqual(message.message, '[cwatcher]: TEST WARNING - test')
-
-
-class TestClassMessage(unittest.TestCase):
-
-    def setUp(self):
-        process_1 = Process('ls')
-        process_2 = Process(['ls', '-a'])
-        self.message = Message(
-            status=0,
-            service_name='service',
-            performance_data={'value1': 1, 'value2': 2},
-            custom_message='Everything ok',
-            processes=[process_1, process_2],
-        )
-
-    def test_magic_method(self):
-        self.assertEqual(
-            str(self.message),
-            "[Message] body: '', custom_message: 'Everything ok', message: "
-            "'[cwatcher]: SERVICE OK - Everything ok', message_monitoring: "
-            "'[cwatcher]: SERVICE OK - Everything ok "
-            "| value1=1 value2=2', performance_data: 'value1=1 value2=2', "
-            "prefix: '[cwatcher]:', processes: '(ls; ls -a)', "
-            "service_name: 'service', "
-            "status_text: 'OK', user: '[user:{}]'".format(USERNAME)
-        )
-
-    def test_attribute_status(self):
-        self.assertEqual(self.message.status, 0)
-
-    def test_attribute_status_not_set(self):
-        message = Message()
-        self.assertEqual(message.status, 0)
-        self.assertEqual(message.status_text, 'OK')
-
-    def test_attribute_status_text(self):
-        self.assertEqual(self.message.status_text, 'OK')
-
-    def test_attribute_service_name_not_set(self):
-        message = Message()
-        self.assertEqual(message.service_name, 'service_not_set')
-
-    def test_attribute_performance_data(self):
-        self.assertEqual(self.message.performance_data, 'value1=1 value2=2')
-
-    def test_attribute_prefix(self):
-        self.assertEqual(self.message.prefix, '[cwatcher]:')
-
-    def test_attribute_message(self):
-        self.assertEqual(self.message.message,
-                         '[cwatcher]: SERVICE OK - Everything ok')
-
-    def test_attribute_message_monitoring(self):
-        self.assertEqual(
-            self.message.message_monitoring,
-            '[cwatcher]: SERVICE OK - Everything ok | value1=1 value2=2'
-        )
-
-    def test_attribute_processes(self):
-        self.assertEqual(self.message.processes, '(ls; ls -a)')

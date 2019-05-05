@@ -495,8 +495,11 @@ CONFIG_READER_SPEC = {
 }
 
 
+# Main code ###################################################################
+
+
 class Process:
-    """Run new process.
+    """Run a process.
 
     You can use all keyword arguments from
     :py:class:`subprocess.Popen` except `bufsize`, `stderr`, `stdout`.
