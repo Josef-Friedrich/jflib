@@ -401,10 +401,11 @@ class TestClassWatch(unittest.TestCase):
 
     def test_method_run_output_stderr(self):
         watch = cwatcher.Watch(config_file=CONF, service_name='test',
-                               raise_exceptions=False)
+                               raise_exceptions=False, )
         with Capturing(stream='stderr') as output:
             process = watch.run(self.cmd_stderr)
         self.assertEqual(process.subprocess.returncode, 1)
+        self.assertEqual(output, '')
         self.assertEqual(len(output), 1)
         self.assertIn('STDERR', output[0])
         self.assertIn('One line to stderr!', output[0])
