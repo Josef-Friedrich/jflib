@@ -3,20 +3,12 @@ import unittest
 from unittest import mock
 
 from jflib.capturing import Capturing
-from jflib.command_watcher import \
-    Process, \
-    Message, \
-    CommandWatcherError, \
-    EmailChannel, \
-    NscaChannel, \
-    setup_logging, \
-    Watch, \
-    HOSTNAME, \
-    USERNAME
+from jflib import command_watcher as cwatcher
+
 
 DIR_FILES = os.path.join(os.path.dirname(__file__), 'files')
 CONF = os.path.join(DIR_FILES, 'command_watcher', 'conf.ini')
-FROM_ADDR = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
+FROM_ADDR = '{0} <{1}@{0}>'.format(cwatcher.HOSTNAME, cwatcher.USERNAME)
 
 
 # Logging #####################################################################
@@ -24,54 +16,53 @@ FROM_ADDR = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
 
 class TestLogging(unittest.TestCase):
 
+    def setUp(self):
+        logger, handler = cwatcher.setup_logging()
+        self.logger = logger
+        self.handler = handler
+
     def test_initialisation(self):
-        logger, _ = setup_logging()
-        self.assertEqual(len(logger.name), 36)
+        self.assertEqual(len(self.logger.name), 36)
 
     def test_log_stdout(self):
-        logger, handler = setup_logging()
-        logger.stdout('stdout')
-        self.assertEqual(len(handler.buffer), 1)
-        self.assertEqual(handler.buffer[0].msg, 'stdout')
-        self.assertEqual(handler.buffer[0].levelname, 'STDOUT')
+        self.logger.stdout('stdout')
+        self.assertEqual(len(self.handler.buffer), 1)
+        self.assertEqual(self.handler.buffer[0].msg, 'stdout')
+        self.assertEqual(self.handler.buffer[0].levelname, 'STDOUT')
 
     def test_log_stderr(self):
-        logger, handler = setup_logging()
-        logger.stderr('stderr')
-        self.assertEqual(len(handler.buffer), 1)
-        self.assertEqual(handler.buffer[0].msg, 'stderr')
-        self.assertEqual(handler.buffer[0].levelname, 'STDERR')
+        self.logger.stderr('stderr')
+        self.assertEqual(len(self.handler.buffer), 1)
+        self.assertEqual(self.handler.buffer[0].msg, 'stderr')
+        self.assertEqual(self.handler.buffer[0].levelname, 'STDERR')
 
     def test_property_stdout(self):
-        logger, handler = setup_logging()
-        logger.stdout('line 1')
-        logger.stdout('line 2')
-        logger.stderr('stderr')
-        self.assertEqual(handler.stdout, 'line 1\nline 2')
+        self.logger.stdout('line 1')
+        self.logger.stdout('line 2')
+        self.logger.stderr('stderr')
+        self.assertEqual(self.handler.stdout, 'line 1\nline 2')
 
     def test_property_stderr(self):
-        logger, handler = setup_logging()
-        logger.stderr('line 1')
-        logger.stderr('line 2')
-        logger.stdout('stdout')
-        self.assertEqual(handler.stderr, 'line 1\nline 2')
+        self.logger.stderr('line 1')
+        self.logger.stderr('line 2')
+        self.logger.stdout('stdout')
+        self.assertEqual(self.handler.stderr, 'line 1\nline 2')
 
     def test_property_all_records(self):
-        logger, handler = setup_logging()
-        logger.stderr('stderr')
-        logger.stdout('stdout')
-        logger.error('error')
-        logger.debug('debug')
-        self.assertIn('stderr', handler.all_records)
-        self.assertIn('stdout', handler.all_records)
-        self.assertIn('error', handler.all_records)
-        self.assertIn('debug', handler.all_records)
+        self.logger.stderr('stderr')
+        self.logger.stdout('stdout')
+        self.logger.error('error')
+        self.logger.debug('debug')
+        self.assertIn('stderr', self.handler.all_records)
+        self.assertIn('stdout', self.handler.all_records)
+        self.assertIn('error', self.handler.all_records)
+        self.assertIn('debug', self.handler.all_records)
 
 
 class TestColorizedPrint(unittest.TestCase):
 
     def setUp(self):
-        self.logger, _ = setup_logging()
+        self.logger, _ = cwatcher.setup_logging()
 
     def test_critical(self):
         with Capturing(stream='stderr') as output:
@@ -147,9 +138,9 @@ class TestColorizedPrint(unittest.TestCase):
 class TestClassMessage(unittest.TestCase):
 
     def setUp(self):
-        process_1 = Process('ls')
-        process_2 = Process(['ls', '-a'])
-        self.message = Message(
+        process_1 = cwatcher.Process('ls')
+        process_2 = cwatcher.Process(['ls', '-a'])
+        self.message = cwatcher.Message(
             status=0,
             service_name='service',
             performance_data={'value1': 1, 'value2': 2},
@@ -166,14 +157,14 @@ class TestClassMessage(unittest.TestCase):
             "| value1=1 value2=2', performance_data: 'value1=1 value2=2', "
             "prefix: '[cwatcher]:', processes: '(ls; ls -a)', "
             "service_name: 'service', "
-            "status_text: 'OK', user: '[user:{}]'".format(USERNAME)
+            "status_text: 'OK', user: '[user:{}]'".format(cwatcher.USERNAME)
         )
 
     def test_attribute_status(self):
         self.assertEqual(self.message.status, 0)
 
     def test_attribute_status_not_set(self):
-        message = Message()
+        message = cwatcher.Message()
         self.assertEqual(message.status, 0)
         self.assertEqual(message.status_text, 'OK')
 
@@ -181,7 +172,7 @@ class TestClassMessage(unittest.TestCase):
         self.assertEqual(self.message.status_text, 'OK')
 
     def test_attribute_service_name_not_set(self):
-        message = Message()
+        message = cwatcher.Message()
         self.assertEqual(message.service_name, 'service_not_set')
 
     def test_attribute_performance_data(self):
@@ -207,7 +198,7 @@ class TestClassMessage(unittest.TestCase):
 class TestClassEmailChannel(unittest.TestCase):
 
     def setUp(self):
-        self.email = EmailChannel(
+        self.email = cwatcher.EmailChannel(
             smtp_server='mail.example.com:587',
             smtp_login='jf',
             smtp_password='123',
@@ -240,7 +231,7 @@ class TestClassEmailChannel(unittest.TestCase):
         )
 
     def test_method_report(self):
-        message = Message(status=0, service_name='test', body='body')
+        message = cwatcher.Message(status=0, service_name='test', body='body')
         with mock.patch('jflib.command_watcher.send_email') as send_email:
             self.email.report(message)
         send_email.assert_called_with(
@@ -257,7 +248,7 @@ class TestClassEmailChannel(unittest.TestCase):
 class TestClassNscaChannel(unittest.TestCase):
 
     def setUp(self):
-        self.nsca = NscaChannel(
+        self.nsca = cwatcher.NscaChannel(
             remote_host='1.2.3.4',
             password='1234',
             encryption_method=1,
@@ -268,7 +259,7 @@ class TestClassNscaChannel(unittest.TestCase):
     def assert_called_with(self, mock, status, text_output):
         mock.assert_called_with(
             encryption_method=1,
-            host_name=HOSTNAME,
+            host_name=cwatcher.HOSTNAME,
             password='1234',
             port=5667,
             remote_host='1.2.3.4',
@@ -278,7 +269,8 @@ class TestClassNscaChannel(unittest.TestCase):
         )
 
     def send_nsca(self, **kwargs):
-        message = Message(service_name='my_service', prefix='', **kwargs)
+        message = cwatcher.Message(service_name='my_service', prefix='',
+                                   **kwargs)
         with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
                 send_nsca:
             self.nsca.report(message)
@@ -353,11 +345,11 @@ class TestClassWatch(unittest.TestCase):
         self.cmd_stdout = os.path.join(DIR_FILES, 'stdout.sh')
 
     def test_argument_config_file(self):
-        watch = Watch(config_file=CONF, service_name='test')
+        watch = cwatcher.Watch(config_file=CONF, service_name='test')
         self.assertEqual(watch._conf.email.to_addr, 'to@example.com')
 
     def test_watch_stdout(self):
-        watch = Watch(config_file=CONF, service_name='test')
+        watch = cwatcher.Watch(config_file=CONF, service_name='test')
         with Capturing() as output:
             process = watch.run(self.cmd_stdout)
         self.assertEqual(process.subprocess.returncode, 0)
@@ -367,8 +359,8 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('Execution time: ', output[2])
 
     def test_watch_stderr(self):
-        watch = Watch(config_file=CONF, service_name='test',
-                      raise_exceptions=False)
+        watch = cwatcher.Watch(config_file=CONF, service_name='test',
+                               raise_exceptions=False)
         with Capturing(stream='stderr') as output:
             process = watch.run(self.cmd_stderr)
         self.assertEqual(process.subprocess.returncode, 1)
@@ -377,15 +369,15 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('One line to stderr!', output[0])
 
     def test_watch_run_multiple(self):
-        watch = Watch(config_file=CONF, service_name='test',
-                      raise_exceptions=False)
+        watch = cwatcher.Watch(config_file=CONF, service_name='test',
+                               raise_exceptions=False)
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
         self.assertEqual(len(watch._log_handler.buffer), 9)
         self.assertIn('Hostname: ', watch._log_handler.all_records)
 
     def test_method_run_kwargs(self):
-        watch = Watch(config_file=CONF, service_name='test')
+        watch = cwatcher.Watch(config_file=CONF, service_name='test')
         with mock.patch('subprocess.Popen') as Popen:
             process = Popen.return_value
             process.stdout = b''
@@ -396,30 +388,30 @@ class TestClassWatch(unittest.TestCase):
                                  stdout=-1)
 
     def test_method_run_kwargs_exception(self):
-        watch = Watch(config_file=CONF, service_name='test')
+        watch = cwatcher.Watch(config_file=CONF, service_name='test')
         with self.assertRaises(TypeError):
             watch.run('ls', xxx=False)
 
     def test_property_service_name(self):
-        watch = Watch(config_file=CONF, service_name='Service')
+        watch = cwatcher.Watch(config_file=CONF, service_name='Service')
         self.assertEqual(watch._service_name, 'Service')
 
     def test_property_hostname(self):
-        watch = Watch(config_file=CONF, service_name='test')
-        self.assertEqual(watch._hostname, HOSTNAME)
+        watch = cwatcher.Watch(config_file=CONF, service_name='test')
+        self.assertEqual(watch._hostname, cwatcher.HOSTNAME)
 
     def test_property_stdout(self):
-        watch = Watch(config_file=CONF, service_name='test')
+        watch = cwatcher.Watch(config_file=CONF, service_name='test')
         watch.log.stdout('stdout')
         self.assertEqual(watch.stdout, 'stdout')
 
     def test_property_stderr(self):
-        watch = Watch(config_file=CONF, service_name='test')
+        watch = cwatcher.Watch(config_file=CONF, service_name='test')
         watch.log.stderr('stderr')
         self.assertEqual(watch.stderr, 'stderr')
 
     def test_propertyprocesses(self):
-        watch = Watch(config_file=CONF, service_name='test')
+        watch = cwatcher.Watch(config_file=CONF, service_name='test')
         self.assertEqual(watch.processes, [])
         watch.run(['ls'])
         watch.run(['ls', '-l'])
@@ -427,7 +419,7 @@ class TestClassWatch(unittest.TestCase):
         self.assertEqual(len(watch.processes), 3)
 
     def test_method_email_channel_nsca(self):
-        watch = Watch(config_file=CONF, service_name='my_service')
+        watch = cwatcher.Watch(config_file=CONF, service_name='my_service')
         watch.log.info('info')
         watch.run('ls')
 
@@ -455,7 +447,7 @@ class TestClassWatch(unittest.TestCase):
         )
 
     def test_method_report_channel_nsca(self):
-        watch = Watch(config_file=CONF, service_name='my_service')
+        watch = cwatcher.Watch(config_file=CONF, service_name='my_service')
         with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
                 send_nsca, \
                 mock.patch('jflib.command_watcher.send_email'):
@@ -467,7 +459,7 @@ class TestClassWatch(unittest.TestCase):
             )
         send_nsca.assert_called_with(
             encryption_method=1,
-            host_name=HOSTNAME,
+            host_name=cwatcher.HOSTNAME,
             password='1234',
             port=5667,
             remote_host='1.2.3.4',
@@ -488,20 +480,20 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn("performance_data: 'perf_1=1 perf_2=test'", records)
         self.assertIn("service_name: 'my_service',", records)
         self.assertIn("status_text: 'OK',", records)
-        self.assertIn("user: '[user:{}]'".format(USERNAME), records)
+        self.assertIn("user: '[user:{}]'".format(cwatcher.USERNAME), records)
 
     def test_exception(self):
-        watch = Watch(config_file=CONF, service_name='test',
-                      report_channels=[])
-        with self.assertRaises(CommandWatcherError):
+        watch = cwatcher.Watch(config_file=CONF, service_name='test',
+                               report_channels=[])
+        with self.assertRaises(cwatcher.CommandWatcherError):
             watch.run(self.cmd_stderr)
 
 
 class TestClassWatchMethodFinalReport(unittest.TestCase):
 
     def final_report(self, **data):
-        watch = Watch(config_file=CONF, service_name='test',
-                      report_channels=[])
+        watch = cwatcher.Watch(config_file=CONF, service_name='test',
+                               report_channels=[])
         watch._timer.result = mock.Mock()
         watch._timer.result.return_value = '11.123s'
         return watch.final_report(**data)
