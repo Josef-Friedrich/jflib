@@ -383,7 +383,8 @@ class EmailChannel(BaseChannel):
     """Send reports by e-mail."""
 
     def __init__(self, smtp_server: str, smtp_login: str, smtp_password: str,
-                 to_addr: str, from_addr: str = ''):
+                 to_addr: str, from_addr: str = '',
+                 to_addr_critical: str = ''):
         self.smtp_server = smtp_server
         self.smtp_login = smtp_login
         self.smtp_password = smtp_password
@@ -391,15 +392,21 @@ class EmailChannel(BaseChannel):
         self.from_addr = from_addr
         if not from_addr:
             self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
+        self.to_addr_critical = to_addr_critical
 
     def __str__(self):
         return self._obj_to_str(['smtp_server', 'smtp_login', 'to_addr',
                                  'from_addr', ])
 
     def report(self, message):
+        if message.status == 2 and self.to_addr_critical:
+            to_addr = self.to_addr_critical
+        else:
+            to_addr = self.to_addr
+
         send_email(
             from_addr=self.from_addr,
-            to_addr=self.to_addr,
+            to_addr=to_addr,
             subject=message.message,
             body=message.body,
             smtp_login=self.smtp_login,
@@ -478,6 +485,11 @@ CONFIG_READER_SPEC = {
         'to_addr': {
             'description': 'The email address of the recipient.',
             'not_empty': True,
+        },
+        'to_addr_critical': {
+            'description': 'The email address of the recipient to send '
+                           'critical messages to.',
+            'default': None,
         },
         'smtp_login': {
             'description': 'The SMTP login name.',
@@ -668,6 +680,7 @@ class Watch:
                     smtp_password=self._conf.email.smtp_password,
                     to_addr=self._conf.email.to_addr,
                     from_addr=self._conf.email.from_addr,
+                    to_addr_critical=self._conf.email.to_addr_critical,
                 )
                 reporter.add_channel(email_reporter)
                 self.log.debug(email_reporter)

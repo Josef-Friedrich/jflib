@@ -203,22 +203,26 @@ class TestClassEmailChannel(unittest.TestCase):
             smtp_password='123',
             to_addr='logs@example.com',
             from_addr='from@example.com',
+            to_addr_critical='critical@example.com',
         )
 
-    def test_property_smtp_server(self):
+    def test_attribute_smtp_server(self):
         self.assertEqual(self.email.smtp_server, 'mail.example.com:587')
 
-    def test_property_smtp_login(self):
+    def test_attribute_smtp_login(self):
         self.assertEqual(self.email.smtp_login, 'jf')
 
-    def test_property_smtp_password(self):
+    def test_attribute_smtp_password(self):
         self.assertEqual(self.email.smtp_password, '123')
 
-    def test_property_to_addr(self):
+    def test_attribute_to_addr(self):
         self.assertEqual(self.email.to_addr, 'logs@example.com')
 
-    def test_property_from_addr(self):
+    def test_attribute_from_addr(self):
         self.assertEqual(self.email.from_addr, 'from@example.com')
+
+    def test_attribute_to_addr_critical(self):
+        self.assertEqual(self.email.to_addr_critical, 'critical@example.com')
 
     def test_magic_method_str(self):
         self.maxDiff = None
@@ -242,6 +246,21 @@ class TestClassEmailChannel(unittest.TestCase):
             smtp_server='mail.example.com:587',
             subject='[cwatcher]: TEST OK',
             to_addr='logs@example.com',
+        )
+
+    def test_method_report_critical(self):
+        message = cwatcher.Message(status=2, service_name='test', body='body')
+        with mock.patch('jflib.command_watcher.send_email') as send_email:
+            self.email.report(message)
+        send_email.assert_called_with(
+            body='Host: {}\nUser: {}\nService name: test\n\nbody'
+                 .format(cwatcher.HOSTNAME, cwatcher.USERNAME),
+            from_addr='from@example.com',
+            smtp_login='jf',
+            smtp_password='123',
+            smtp_server='mail.example.com:587',
+            subject='[cwatcher]: TEST CRITICAL',
+            to_addr='critical@example.com',
         )
 
 
@@ -460,7 +479,7 @@ class TestClassWatch(unittest.TestCase):
         watch.run(['ls', '-la'])
         self.assertEqual(len(watch.processes), 3)
 
-    def test_method_email_channel_nsca(self):
+    def test_method_report_channel_email(self):
         watch = cwatcher.Watch(config_file=CONF, service_name='my_service')
         watch.log.info('info')
         watch.run('ls')
@@ -485,6 +504,19 @@ class TestClassWatch(unittest.TestCase):
         self.assertEqual(call_args[1], ['to@example.com'])
         self.assertIn(
             'From: from@example.com\nTo: to@example.com\n',
+            call_args[2]
+        )
+
+    def test_method_report_channel_email_critical(self):
+        watch = cwatcher.Watch(config_file=CONF, service_name='my_service')
+        with mock.patch('jflib.command_watcher.send_nsca.send_nsca'), \
+                mock.patch('smtplib.SMTP') as SMTP:
+            watch.report(status=2)
+        server = SMTP.return_value
+        call_args = server.sendmail.call_args[0]
+        self.assertEqual(call_args[1], ['critical@example.com'])
+        self.assertIn(
+            'From: from@example.com\nTo: critical@example.com\n',
             call_args[2]
         )
 
