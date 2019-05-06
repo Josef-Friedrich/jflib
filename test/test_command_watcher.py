@@ -439,13 +439,27 @@ class TestClassWatch(unittest.TestCase):
         self.assertIn('STDERR', output.tostring())
         self.assertIn('One line to stderr!', output.tostring())
 
-    def test_watch_run_multiple(self):
+    def test_method_run_multiple(self):
         watch = cwatcher.Watch(config_file=CONF, service_name='test',
                                raise_exceptions=False)
         watch.run(self.cmd_stdout)
         watch.run(self.cmd_stderr)
         self.assertEqual(len(watch._log_handler.buffer), 9)
         self.assertIn('Hostname: ', watch._log_handler.all_records)
+
+    def test_method_run_log_true(self):
+        watch = cwatcher.Watch(config_file=CONF, service_name='test',
+                               raise_exceptions=False)
+        process = watch.run(self.cmd_stdout, log=True)
+        self.assertEqual(watch.stdout, 'One line to stdout!')
+        self.assertEqual(process.stdout, 'One line to stdout!')
+
+    def test_method_run_log_false(self):
+        watch = cwatcher.Watch(config_file=CONF, service_name='test',
+                               raise_exceptions=False)
+        process = watch.run(self.cmd_stdout, log=False)
+        self.assertEqual(watch.stdout, '')
+        self.assertEqual(process.stdout, 'One line to stdout!')
 
     def test_method_run_kwargs(self):
         watch = cwatcher.Watch(config_file=CONF, service_name='test')

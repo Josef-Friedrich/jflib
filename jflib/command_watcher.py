@@ -536,8 +536,8 @@ class Process:
     You can use all keyword arguments from
     :py:class:`subprocess.Popen` except `bufsize`, `stderr`, `stdout`.
 
-    :param args: List or string. A command with command line
-        arguments. Like subprocess.Popen(args).
+    :param args: List, tuple or string. A sequence of
+        process arguments, like `subprocess.Popen(args)`.
     :param master_logger:
     :param bool shell: If true, the command will be executed through the
         shell.
@@ -733,8 +733,22 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def run(self, args, **kwargs):
-        process = Process(args, master_logger=self.log, **kwargs)
+    def run(self, args: typing.Union[str, list, tuple],
+            log: bool = True, **kwargs) -> Process:
+        """
+        Run a process.
+
+        :param args: List, tuple or string. A sequence of
+          process arguments, like `subprocess.Popen(args)`.
+        :param log: Log the `stderr` and the `stdout` of the
+          process. If false the `stdout` and the `stderr` are logged only
+          to the local process logger, not to get global master logger.
+        """
+        if log:
+            master_logger = self.log
+        else:
+            master_logger = None
+        process = Process(args, master_logger=master_logger, **kwargs)
         self.processes.append(process)
         if self._raise_exceptions and process.subprocess.returncode != 0:
             raise CommandWatcherError(
