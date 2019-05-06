@@ -392,9 +392,19 @@ class TestClassProcess(unittest.TestCase):
         process = self.launch_process([self.cmd_stdout])
         self.assertTrue(process.stdout)
 
+    def test_property_line_count_stdout(self):
+        process = self.launch_process([self.cmd_stdout])
+        self.assertEqual(process.line_count_stdout, 1)
+        self.assertEqual(process.line_count_stderr, 0)
+
     def test_property_stderr(self):
         process = self.launch_process([self.cmd_stderr])
         self.assertTrue(process.stderr)
+
+    def test_property_line_count_stderr(self):
+        process = self.launch_process([self.cmd_stderr])
+        self.assertEqual(process.line_count_stdout, 0)
+        self.assertEqual(process.line_count_stderr, 1)
 
 
 class TestClassWatch(unittest.TestCase):

@@ -596,14 +596,24 @@ class Process:
             return self.args
 
     @property
-    def stdout(self):
+    def stdout(self) -> str:
         """Alias / shortcut for `self.log_handler.stdout`."""
         return self.log_handler.stdout
 
     @property
-    def stderr(self):
+    def line_count_stdout(self) -> int:
+        """The count of lines of the current `stderr`."""
+        return len(self.stdout.splitlines())
+
+    @property
+    def stderr(self) -> str:
         """Alias / shortcut for `self.log_handler.stderr`."""
         return self.log_handler.stderr
+
+    @property
+    def line_count_stderr(self) -> int:
+        """The count of lines of the current `stderr`."""
+        return len(self.stderr.splitlines())
 
     def _stdout_stderr_reader(self, pipe, stream):
         """
