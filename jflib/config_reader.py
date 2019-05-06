@@ -328,9 +328,10 @@ def load_readers_by_keyword(**kwargs) -> list:
     specifically the first reader class, overwrites the next ones.
 
     :param tuple argparse: A tuple `(args, mapping)`.
-      `args`: The parsed `argparse` object.
+      `args`: The parsed `argparse` object (Namespace).
       `mapping`: A dictionary like this one: `{'section.key': 'dest'}`. `dest`
       are the propertiy name of the `args` object.
+      or only the `argparse` object (Namespace).
     :param dict dictonary: A two dimensional nested dictionary
       `{'section': {'key': 'value'}}`
     :param str environ: The prefix of the environment variables.
@@ -339,7 +340,10 @@ def load_readers_by_keyword(**kwargs) -> list:
     readers = []
     for keyword, value in kwargs.items():
         if keyword == 'argparse':
-            readers.append(ArgparseReader(args=value[0], mapping=value[1]))
+            if isinstance(value, tuple) or isinstance(value, list):
+                readers.append(ArgparseReader(args=value[0], mapping=value[1]))
+            elif value.__class__.__name__ == 'Namespace':
+                readers.append(ArgparseReader(args=value))
         elif keyword == 'dictionary':
             readers.append(DictionaryReader(dictionary=value))
         elif keyword == 'environ':
@@ -374,9 +378,10 @@ class ConfigReader(object):
             }
 
     :param tuple argparse: A tuple `(args, mapping)`.
-      `args`: The parsed `argparse` object.
+      `args`: The parsed `argparse` object (Namespace).
       `mapping`: A dictionary like this one: `{'section.key': 'dest'}`. `dest`
       are the propertiy name of the `args` object.
+      or only the `argparse` object (Namespace).
     :param dict dictonary: A two dimensional nested dictionary
       `{'section': {'key': 'value'}}`
     :param str environ: The prefix of the environment variables.

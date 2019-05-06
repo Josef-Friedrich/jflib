@@ -31,8 +31,8 @@ os.environ['XXX__Baroque__name'] = 'Bach'
 parser = argparse.ArgumentParser()
 parser.add_argument('--classical-name')
 parser.add_argument('--baroque-name')
-args = parser.parse_args(['--baroque-name', 'Bach', '--classical-name',
-                          'Mozart'])
+ARGPARSER_NAMESPACE = parser.parse_args(['--baroque-name', 'Bach',
+                                         '--classical-name', 'Mozart'])
 
 
 class TestFunctionValidateKey(unittest.TestCase):
@@ -75,13 +75,13 @@ class TestClassReaderBase(unittest.TestCase):
 class TestClassArgparseReader(unittest.TestCase):
 
     def test_method_get_without_mapping(self):
-        argparse = ArgparseReader(args=args)
+        argparse = ArgparseReader(args=ARGPARSER_NAMESPACE)
         self.assertEqual(argparse.get('Classical', 'name'), 'Mozart')
         self.assertEqual(argparse.get('Baroque', 'name'), 'Bach')
 
     def test_method_get_with_mapping(self):
         argparse = ArgparseReader(
-            args=args,
+            args=ARGPARSER_NAMESPACE,
             mapping={
                 'Classical.name': 'classical_name',
                 'Baroque.name': 'baroque_name',
@@ -91,7 +91,7 @@ class TestClassArgparseReader(unittest.TestCase):
 
     def test_exception(self):
         argparse = ArgparseReader(
-            args=args,
+            args=ARGPARSER_NAMESPACE,
             mapping={
                 'Classical.name': 'classical_name',
                 'Baroque.name': 'baroque_name',
@@ -232,6 +232,10 @@ class TestFunctionLoadReadersByKeyword(unittest.TestCase):
         readers = load_readers_by_keyword(environ='XXX', ini=INI_FILE, )
         self.assertEqual(readers[0].__class__.__name__, 'EnvironReader')
         self.assertEqual(readers[1].__class__.__name__, 'IniReader')
+
+    def test_argparse_single_arguemnt(self):
+        readers = load_readers_by_keyword(argparse=ARGPARSER_NAMESPACE)
+        self.assertEqual(readers[0].__class__.__name__, 'ArgparseReader')
 
 
 # Integration tests ###########################################################
