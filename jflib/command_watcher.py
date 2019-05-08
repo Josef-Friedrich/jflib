@@ -547,17 +547,20 @@ class Process:
     """
     def __init__(self, args: typing.Union[str, list, tuple],
                  master_logger: logging.Logger = None, **kwargs):
-        self.args: typing.Union[str, list, tuple] = args
+        # self.args: typing.Union[str, list, tuple] = args
+        self.args = args
         """Process arguments in various types."""
 
         self._queue = queue.Queue()
         """An instance of :py:class:`queue.Queue`."""
 
         log, log_handler = setup_logging(master_logger=master_logger)
-        self.log: logging.Logger = log
+        # self.log: logging.Logger = log
+        self.log = log
         """A ready to go and configured logger. An instance of
         :py:class:`logging.Logger`."""
-        self.log_handler: LoggingHandler = log_handler
+        # self.log_handler: LoggingHandler = log_handler
+        self.log_handler = log_handler
         """An instance of :py:class:`LoggingHandler`."""
 
         self.log.info('Run command: {}'.format(' '.join(self.args_normalized)))
