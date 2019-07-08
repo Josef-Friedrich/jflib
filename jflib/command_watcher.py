@@ -737,7 +737,8 @@ class Watch:
         return self._log_handler.stderr
 
     def run(self, args: typing.Union[str, list, tuple],
-            log: bool = True, **kwargs) -> Process:
+            log: bool = True, ignore_exceptions: typing.List[int] = [],
+            **kwargs) -> Process:
         """
         Run a process.
 
@@ -746,6 +747,8 @@ class Watch:
         :param log: Log the `stderr` and the `stdout` of the
           process. If false the `stdout` and the `stderr` are logged only
           to the local process logger, not to get global master logger.
+        :param ignore_exceptions: A list of none-zero exit codes, which is
+          ignored by this method.
         """
         if log:
             master_logger = self.log
@@ -753,7 +756,8 @@ class Watch:
             master_logger = None
         process = Process(args, master_logger=master_logger, **kwargs)
         self.processes.append(process)
-        if self._raise_exceptions and process.subprocess.returncode != 0:
+        rc = process.subprocess.returncode
+        if self._raise_exceptions and rc != 0 and rc not in ignore_exceptions:
             raise CommandWatcherError(
                 'The command \'{}\' exists with an non-zero return code.'
                 .format(' '.join(process.args_normalized)),

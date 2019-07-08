@@ -586,6 +586,19 @@ class TestClassWatch(unittest.TestCase):
         with self.assertRaises(cwatcher.CommandWatcherError):
             watch.run(self.cmd_stderr)
 
+    def test_ignore_exceptions(self):
+        watch = cwatcher.Watch(config_file=CONF, service_name='test',
+                               report_channels=[])
+        process = watch.run(self.cmd_stderr, ignore_exceptions=[1])
+        self.assertEqual(process.subprocess.returncode, 1)
+
+    def test_ignore_exceptions_raise(self):
+        watch = cwatcher.Watch(config_file=CONF, service_name='test',
+                               report_channels=[])
+        with self.assertRaises(cwatcher.CommandWatcherError):
+            watch.run(os.path.join(DIR_FILES, 'exit-2.sh'),
+                      ignore_exceptions=[1])
+
 
 class TestClassWatchMethodFinalReport(unittest.TestCase):
 
