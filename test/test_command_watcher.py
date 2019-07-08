@@ -354,6 +354,42 @@ class TestClassNscaChannel(unittest.TestCase):
         )
 
 
+class TestClassBeepChannel(unittest.TestCase):
+
+    def setUp(self):
+        self.beep = cwatcher.BeepChannel()
+
+    def report(self, status):
+        message = cwatcher.Message(service_name='my_service', prefix='',
+                                   status=status)
+        with mock.patch('subprocess.run') as subprocess_run:
+            self.beep.report(message)
+        return subprocess_run
+
+    def test_status_ok(self):
+        subprocess_run = self.report(0)
+        subprocess_run.assert_called_with(
+            ['beep', '-f', '4186.01', '-l', '50.0']
+        )
+
+    def test_status_warning(self):
+        subprocess_run = self.report(1)
+        subprocess_run.assert_called_with(
+            ['beep', '-f', '261.626', '-l', '100.0']
+        )
+
+    def test_status_critical(self):
+        subprocess_run = self.report(2)
+        subprocess_run.assert_called_with(
+            ['beep', '-f', '65.4064', '-l', '150.0']
+        )
+
+    def test_status_unkown(self):
+        subprocess_run = self.report(3)
+        subprocess_run.assert_called_with(
+            ['beep', '-f', '32.7032', '-l', '200.0']
+        )
+
 # Main code ###################################################################
 
 

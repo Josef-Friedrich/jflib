@@ -277,6 +277,8 @@ class Message(BaseClass):
 
     @property
     def status(self) -> int:
+        """0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
+        Nagios / Icinga monitoring status / state."""
         return self._data.get('status', 0)
 
     @property
@@ -456,6 +458,39 @@ class NscaChannel(BaseChannel):
         )
 
 
+class BeepChannel(BaseChannel):
+    """Send beep sounds."""
+
+    @staticmethod
+    def beep(frequency: float = 4186.01, length: float = 50):
+        """
+        Generate a beep sound using the “beep” command.
+
+        * A success tone: frequency=4186.01, length=40
+        * A failure tone: frequency=65.4064, length=100
+
+        :param frequency: Frequency in Hz.
+        :param length: Length in milliseconds.
+        """
+        subprocess.run(['beep', '-f', str(float(frequency)), '-l',
+                        str(float(length))])
+
+    def report(self, message: Message):
+        """Send a beep sounds.
+
+        :param message: A message object. The only attribute that takes an
+          effect is the status attribute (0-3).
+        """
+        if message.status == 0:  # OK
+            self.beep(frequency=4186.01, length=50)  # C8 (highest note)
+        elif message.status == 1:  # WARNING
+            self.beep(frequency=261.626, length=100)  # C4 (middle C)
+        elif message.status == 2:  # CRITICAL
+            self.beep(frequency=65.4064, length=150)  # C2 (low C)
+        elif message.status == 3:  # UNKOWN
+            self.beep(frequency=32.7032, length=200)  # C1
+
+
 class Reporter:
     """Collect all channels."""
 
@@ -532,6 +567,13 @@ CONFIG_READER_SPEC = {
             'description': 'The NSCA port.',
             'default': 5667,
         },
+    },
+    'beep': {
+        'activate': {
+            'description': 'Activate the beep channel to report auditive '
+                           'messages.',
+            'default': False,
+        }
     }
 }
 
