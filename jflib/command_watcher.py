@@ -776,6 +776,7 @@ class Watch:
             if shutil.which('beep') and self._conf.beep.activated:
                 beep_reporter = BeepChannel()
                 reporter.add_channel(beep_reporter)
+                self.log.debug(beep_reporter)
 
         else:
             reporter.channels = []
