@@ -256,6 +256,9 @@ def setup_logging(master_logger: logging.Logger = None) -> \
 
 class Message(BaseClass):
     """
+    This message class bundles all available message data into an object. The
+    different reporters can choose which data they use.
+
     :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
         Nagios / Icinga monitoring status / state.
     :param str service_name: The name of the service.
@@ -398,7 +401,11 @@ class EmailChannel(BaseChannel):
         return self._obj_to_str(['smtp_server', 'smtp_login', 'to_addr',
                                  'from_addr', ])
 
-    def report(self, message):
+    def report(self, message: Message):
+        """Send an e-mail message.
+
+        :param message: A message object.
+        """
         if message.status == 2 and self.to_addr_critical:
             to_addr = self.to_addr_critical
         else:
@@ -432,8 +439,10 @@ class NscaChannel(BaseChannel):
         return self._obj_to_str(['remote_host', 'encryption_method', 'port',
                                  'service_name'])
 
-    def report(self, message):
+    def report(self, message: Message):
         """Send a NSCA message to a remote NSCA server.
+
+        :param message: A message object.
         """
         send_nsca.send_nsca(
             status=message.status,
@@ -448,7 +457,7 @@ class NscaChannel(BaseChannel):
 
 
 class Reporter:
-    """"""
+    """Collect all channels."""
 
     def __init__(self):
         self.channels = []
