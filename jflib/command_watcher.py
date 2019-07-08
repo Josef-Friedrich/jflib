@@ -21,6 +21,7 @@ import queue
 import shlex
 import socket
 import subprocess
+import shutil
 import sys
 import textwrap
 import threading
@@ -461,8 +462,14 @@ class NscaChannel(BaseChannel):
 class BeepChannel(BaseChannel):
     """Send beep sounds."""
 
-    @staticmethod
-    def beep(frequency: float = 4186.01, length: float = 50):
+    def __init__(self):
+        self.cmd = shutil.which('beep')
+
+    def __str__(self):
+        # No password!
+        return self._obj_to_str(['cmd'])
+
+    def beep(self, frequency: float = 4186.01, length: float = 50):
         """
         Generate a beep sound using the “beep” command.
 
@@ -472,6 +479,7 @@ class BeepChannel(BaseChannel):
         :param frequency: Frequency in Hz.
         :param length: Length in milliseconds.
         """
+        # TODO: Use self.cmd -> Fix tests
         subprocess.run(['beep', '-f', str(float(frequency)), '-l',
                         str(float(length))])
 
@@ -569,7 +577,7 @@ CONFIG_READER_SPEC = {
         },
     },
     'beep': {
-        'activate': {
+        'activated': {
             'description': 'Activate the beep channel to report auditive '
                            'messages.',
             'default': False,
@@ -764,6 +772,11 @@ class Watch:
                 self.log.debug(nsca_reporter)
             except (ValueError, KeyError):
                 pass
+
+            if shutil.which('beep') and self._conf.beep.activated:
+                beep_reporter = BeepChannel()
+                reporter.add_channel(beep_reporter)
+
         else:
             reporter.channels = []
 
