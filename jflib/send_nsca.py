@@ -82,7 +82,8 @@ try:
     import Crypto.Cipher.DES
     import Crypto.Cipher.DES3
     import Crypto.Cipher.CAST
-    import Crypto.Util.randpool
+    # pycryptodome has no randpool
+    # import Crypto.Util.randpool
 except ImportError:
     from unittest.mock import Mock
     Crypto = Mock()
