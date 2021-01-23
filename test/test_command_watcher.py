@@ -505,7 +505,7 @@ class TestClassWatch(unittest.TestCase):
             process.stderr = b''
             process.returncode = 0
             watch.run('ls', cwd='/')
-        Popen.assert_called_with(['ls'], bufsize=1, cwd='/', stderr=-1,
+        Popen.assert_called_with(['ls'], cwd='/', stderr=-1,
                                  stdout=-1)
 
     def test_method_run_kwargs_exception(self):

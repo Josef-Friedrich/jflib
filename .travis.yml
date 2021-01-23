@@ -1,14 +1,14 @@
 language: python
-python: 3.6
-env:
-- TOXENV=py3
-- TOXENV=flake8
+
 install:
 - pip install tox
+
 script: tox
 
 jobs:
   include:
+  - python: '3.8'
+    env: TOXENV=py38
   - stage: deploy
     script: echo "Deploying on PyPi ..."
     env:
