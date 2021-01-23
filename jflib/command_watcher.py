@@ -628,7 +628,9 @@ class Process:
             self.args_normalized,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            bufsize=1,
+            # RuntimeWarning: line buffering (buffering=1) isn't
+            # supported in binary mode, the default buffer size will be used
+            # bufsize=1,
             **kwargs
         )
         """subprocess"""
