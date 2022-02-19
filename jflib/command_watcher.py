@@ -826,8 +826,8 @@ class Watch:
         rc = process.subprocess.returncode
         if self._raise_exceptions and rc != 0 and rc not in ignore_exceptions:
             raise CommandWatcherError(
-                'The command \'{}\' exists with an non-zero return code.'
-                .format(' '.join(process.args_normalized)),
+                'The command \'{}\' exists with an non-zero return code ({}).'
+                .format(' '.join(process.args_normalized), rc),
                 service_name=self._service_name,
                 log_records=self._log_handler.all_records,
             )
