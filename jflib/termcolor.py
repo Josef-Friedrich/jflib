@@ -25,7 +25,7 @@
 
 from __future__ import print_function
 import os
-
+import re
 
 __ALL__ = ['colored', 'cprint']
 
@@ -81,6 +81,29 @@ COLORS = dict(
 
 
 RESET = '\033[0m'
+
+
+def remove_color(text: str) -> str:
+    """https://stackoverflow.com/a/14693789/10193818"""
+    # 7-bit and 8-bit C1 ANSI sequences
+    ansi_escape_8bit = re.compile(r'''
+        (?: # either 7-bit C1, two bytes, ESC Fe (omitting CSI)
+            \x1B
+            [@-Z\\-_]
+        |   # or a single 8-bit byte Fe (omitting CSI)
+            [\x80-\x9A\x9C-\x9F]
+        |   # or CSI + control codes
+            (?: # 7-bit CSI, ESC [
+                \x1B\[
+            |   # 8-bit CSI, 9B
+                \x9B
+            )
+            [0-?]*  # Parameter bytes
+            [ -/]*  # Intermediate bytes
+            [@-~]   # Final byte
+        )
+    ''', re.VERBOSE)
+    return ansi_escape_8bit.sub('', text)
 
 
 def colored(text, color=None, on_color=None, attrs=None):
