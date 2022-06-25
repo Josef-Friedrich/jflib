@@ -23,10 +23,11 @@ Capture stderr:
         print('line 1', file=sys.stderr)
 
 """
-
+from __future__ import annotations
 from io import StringIO
 import sys
 import re
+from typing import Literal, Union
 
 
 class Capturing(list):
@@ -41,7 +42,11 @@ class Capturing(list):
         `Answer on Stackoverflow <https://stackoverflow.com/a/16571630>`_
     """
 
-    def __init__(self, stream: str = 'stdout', clean_ansi: bool = False):
+    def __init__(
+        self,
+        stream: Union[Literal['stdout'], Literal['stderr']] = 'stdout',
+        clean_ansi: bool = False
+    ):
         if stream not in ['stdout', 'stderr']:
             raise(ValueError('“stream” must be either “stdout” or “stderr”'))
         self.stream = stream
@@ -68,11 +73,11 @@ class Capturing(list):
         elif self.stream == 'stderr':
             sys.stderr = self._pipe
 
-    def tostring(self):
+    def tostring(self) -> str:
         """Convert the output into an string. By default a list of output
         lines is returned."""
         return '\n'.join(self)
 
     @staticmethod
-    def _clean_ansi(text):
+    def _clean_ansi(text: str) -> str:
         return re.sub(r'\x1b.*?m', '', text)

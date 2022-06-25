@@ -41,6 +41,7 @@ import re
 import argparse
 import abc
 import typing
+from typing import Any, Dict, List, Optional
 
 
 class ConfigValueError(Exception):
@@ -67,13 +68,18 @@ def validate_key(key: str) -> bool:
 class ReaderBase(object, metaclass=abc.ABCMeta):
     """Base class for all readers"""
 
-    def _exception(self, msg):
+    def _exception(self, msg: str):
         """:raises: ConfigValueError"""
         raise ConfigValueError(msg)
 
     @abc.abstractmethod
-    def get(self, section, key):
+    def get(self, section: str, key: str) -> Any:
         raise NotImplementedError('A reader class must have a `get` method.')
+
+
+Mapping = Dict[str, str]
+"""A dictionary like this one: `{'section.key': 'dest'}`.
+      `dest` is the property name of the `args` object."""
 
 
 class ArgparseReader(ReaderBase):
@@ -89,7 +95,10 @@ class ArgparseReader(ReaderBase):
     :param mapping: A dictionary like this one: `{'section.key': 'dest'}`.
       `dest` is the property name of the `args` object.
     """
-    def __init__(self, args: argparse.Namespace, mapping: dict = {}):
+
+    _mapping: Mapping
+
+    def __init__(self, args: argparse.Namespace, mapping: Mapping = {}):
         self._args = args
         self._mapping = mapping
 
@@ -125,7 +134,8 @@ class DictionaryReader(ReaderBase):
 
     :param dictionary: A nested dictionary.
     """
-    def __init__(self, dictionary: dict):
+
+    def __init__(self, dictionary: Dict[str, Any]):
         self._dictionary = dictionary
 
     def get(self, section: str, key: str) -> typing.Any:
@@ -155,7 +165,7 @@ class EnvironReader(ReaderBase):
 
     :param prefix: A enviroment prefix"""
 
-    def __init__(self, prefix: str = None):
+    def __init__(self, prefix: Optional[str] = None):
         self._prefix = prefix
 
     def get(self, section: str, key: str) -> typing.Any:
@@ -183,6 +193,7 @@ class IniReader(ReaderBase):
 
     :param path: The path of the INI file.
     """
+
     def __init__(self, path: str):
         self._config = configparser.ConfigParser()
         if not path or not os.path.exists(path):
@@ -215,6 +226,7 @@ class SpecReader(ReaderBase):
 
     :param spec: The `spec` (specification) dictionary.
     """
+
     def __init__(self, spec: dict):
         self._spec = spec
 
@@ -242,12 +254,12 @@ class SpecReader(ReaderBase):
 class ReaderSelector:
     """Select for each get request which reader to use."""
 
-    def __init__(self, *readers):
+    def __init__(self, *readers: ReaderBase):
         self.readers = readers
         """A list of readers."""
 
     @staticmethod
-    def _validate_key(key):
+    def _validate_key(key: str):
         return validate_key(key)
 
     def get(self, section: str, key: str):
@@ -268,7 +280,7 @@ class ReaderSelector:
                          '(section “{}” key “{}”).'.format(section, key))
 
 
-def auto_type(value):
+def auto_type(value: Any) -> Any:
     """https://stackoverflow.com/a/7019325"""
     try:
         return ast.literal_eval(value)
@@ -283,43 +295,43 @@ def auto_type(value):
 
 class DictionaryInterfaceKey:
 
-    def __init__(self, reader, section):
+    def __init__(self, reader: ReaderBase, section: str):
         self._reader = reader
         self._section = section
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str):
         return auto_type(self._reader.get(self._section, name))
 
 
 class DictionaryInterface:
 
-    def __init__(self, reader):
+    def __init__(self, reader: ReaderBase):
         self._reader = reader
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str):
         return DictionaryInterfaceKey(self._reader, section=name)
 
 
 class ClassInterfaceKey:
 
-    def __init__(self, reader, section):
+    def __init__(self, reader: ReaderBase, section: str):
         self._reader = reader
         self._section = section
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         return auto_type(self._reader.get(self._section, name))
 
 
 class ClassInterface:
 
-    def __init__(self, reader):
+    def __init__(self, reader: ReaderBase):
         self._reader = reader
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         return ClassInterfaceKey(self._reader, section=name)
 
 
-def load_readers_by_keyword(**kwargs) -> list:
+def load_readers_by_keyword(**kwargs: Any) -> List[ReaderBase]:
     """Available readers: `argparse`, `dictionary`, `environ`, `ini`.
 
     The arguments of this class have to be specified as keyword arguments.
@@ -337,7 +349,7 @@ def load_readers_by_keyword(**kwargs) -> list:
     :param str environ: The prefix of the environment variables.
     :param str ini: The path of the INI file.
     """
-    readers = []
+    readers: List[ReaderBase] = []
     for keyword, value in kwargs.items():
         if keyword == 'argparse':
             if isinstance(value, tuple) or isinstance(value, list):
@@ -355,7 +367,7 @@ def load_readers_by_keyword(**kwargs) -> list:
     return readers
 
 
-class ConfigReader(object):
+class ConfigReader:
     """Available readers: `argparse`, `dictionary`, `environ`, `ini`.
 
     The arguments of this class have to be specified as keyword arguments.
@@ -387,6 +399,7 @@ class ConfigReader(object):
     :param str environ: The prefix of the environment variables.
     :param str ini: The path of the INI file.
     """
+
     def __init__(self, spec: dict = {}, **kwargs):
         if spec:
             readers = load_readers_by_keyword(**kwargs, spec=spec)
