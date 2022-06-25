@@ -29,6 +29,7 @@ import typing
 import time
 import uuid
 
+from typing import List
 from logging.handlers import BufferingHandler
 
 from . import termcolor, send_nsca
@@ -270,6 +271,7 @@ class Message(BaseClass):
         `{'perf_1': 1, 'perf_2': 'test'}`.
     :param str log_records: Log records separated by new lines
     """
+
     def __init__(self, **data):
         self._data = data
 
@@ -338,7 +340,7 @@ class Message(BaseClass):
     @property
     def body(self) -> str:
         """Text body for the e-mail message."""
-        output = []
+        output: List[str] = []
         output.append('Host: {}'.format(HOSTNAME))
         output.append('User: {}'.format(USERNAME))
         output.append('Service name: {}'.format(self.service_name))
@@ -604,6 +606,7 @@ class Process:
         executed.
     :param dict env: Defines the environment variables for the new process.
     """
+
     def __init__(self, args: typing.Union[str, list, tuple],
                  master_logger: logging.Logger = None, **kwargs):
         # self.args: typing.Union[str, list, tuple] = args
@@ -714,6 +717,7 @@ class Watch:
     :param config_reader: A custom configuration reader. Specify this
       parameter to not use the build in configuration reader.
     """
+
     def __init__(self, config_file: str = None,
                  service_name: str = 'command_watcher',
                  raise_exceptions: bool = True,
