@@ -26,8 +26,7 @@
 
 import os
 import re
-from typing import Literal, Optional, List, Protocol, TypeVar, TypedDict
-from typing_extensions import Unpack
+from typing import Optional, List
 
 
 __ALL__ = ['colored', 'cprint']
@@ -143,26 +142,9 @@ def colored(text: str, color: Optional[str] = None,
     return text
 
 
-_T_contra = TypeVar("_T_contra", contravariant=True)
-
-
-class SupportsWrite(Protocol[_T_contra]):
-    def write(self, __s: _T_contra) -> object: ...
-
-
-class PrintArgs(TypedDict, total=False):
-    sep: str
-    end: str
-    file: SupportsWrite[str]
-    flush: Literal[False]
-
-
 def cprint(text: str, color: Optional[str] = None,
            on_color: Optional[str] = None,
-           attrs: Optional[List[str]] = None, **kwargs: Unpack[PrintArgs]):
+           attrs: Optional[List[str]] = None):
     """Print colorize text.
-
-    It accepts arguments of print function.
     """
-
-    print((colored(text, color, on_color, attrs)), **kwargs)
+    print((colored(text, color, on_color, attrs)))

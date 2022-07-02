@@ -15,9 +15,9 @@ source_suffix = '.rst'
 
 master_doc = 'index'
 
-project = u'jflib'
-copyright = u'2019, Josef Friedrich'
-author = u'Josef Friedrich'
+project = 'jflib'
+copyright = '2019, Josef Friedrich'
+author = 'Josef Friedrich'
 version = jflib.__version__
 release = jflib.__version__
 language = 'en'
@@ -31,6 +31,6 @@ autodoc_default_options = {
     'undoc-members': False,
     'private-members': False,
     'special-members': False,
-    'show-inheritance': True,
+    'show-inheritance': False,
 }
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
