@@ -72,7 +72,7 @@ import os
 import random
 import socket
 import struct
-from . import six
+import six
 from typing import Union
 
 try:
