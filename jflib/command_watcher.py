@@ -43,10 +43,10 @@ USERNAME = pwd.getpwuid(os.getuid()).pw_name
 
 class BaseClass:
 
-    def _obj_to_str(self, attributes=[]):
+    def _obj_to_str(self, attributes: List[str] = []) -> str:
         if not attributes:
             attributes = dir(self)
-        output = []
+        output: List[str] = []
         for attribute in attributes:
             if not attribute.startswith('_') and \
                not callable(getattr(self, attribute)):
@@ -381,8 +381,7 @@ class BaseChannel(BaseClass, metaclass=abc.ABCMeta):
     """Base class for all reporters"""
 
     @abc.abstractmethod
-    def report(self, status: int = 0, service_name: str = 'command_watcher',
-               **data):
+    def report(self, message: Message) -> None:
         raise NotImplementedError('A reporter class must have a `report` '
                                   'method.')
 

@@ -41,7 +41,7 @@ import re
 import argparse
 import abc
 import typing
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 
 class ConfigValueError(Exception):
@@ -80,6 +80,29 @@ class ReaderBase(object, metaclass=abc.ABCMeta):
 Mapping = Dict[str, str]
 """A dictionary like this one: `{'section.key': 'dest'}`.
       `dest` is the property name of the `args` object."""
+
+
+class KeySpec(TypedDict):
+    description: str
+    default: Any
+    not_empty: bool
+
+
+Spec = Dict[str, Dict[str, KeySpec]]
+"""A dictionary like this example:
+
+.. code:: python
+
+    spec = {
+        'section_1': {
+            'key_1': {
+                'description': 'Lorem ipsum',
+                'default': 123,
+                'not_empty': True,
+            }
+        }
+    }
+"""
 
 
 class ArgparseReader(ReaderBase):
@@ -227,7 +250,9 @@ class SpecReader(ReaderBase):
     :param spec: The `spec` (specification) dictionary.
     """
 
-    def __init__(self, spec: dict):
+    _spec: Spec
+
+    def __init__(self, spec: Spec):
         self._spec = spec
 
     def get(self, section: str, key: str) -> typing.Any:
@@ -251,7 +276,7 @@ class SpecReader(ReaderBase):
 # Common code #################################################################
 
 
-class ReaderSelector:
+class ReaderSelector(ReaderBase):
     """Select for each get request which reader to use."""
 
     def __init__(self, *readers: ReaderBase):
@@ -375,20 +400,6 @@ class ConfigReader:
     The order of the keywords is important. The first keyword, more
     specifically the first reader class, overwrites the next ones.
 
-    :param spec: A dictionary like this example:
-
-        .. code:: python
-
-            spec = {
-                'section_1': {
-                    'key_1': {
-                        'description': 'Lorem ipsum',
-                        'default': 123,
-                        'not_empty': True,
-                    }
-                }
-            }
-
     :param tuple argparse: A tuple `(args, mapping)`.
       `args`: The parsed `argparse` object (Namespace).
       `mapping`: A dictionary like this one: `{'section.key': 'dest'}`. `dest`
@@ -400,7 +411,10 @@ class ConfigReader:
     :param str ini: The path of the INI file.
     """
 
-    def __init__(self, spec: dict = {}, **kwargs):
+    spec: Spec
+    reader: ReaderBase
+
+    def __init__(self, spec: Spec = {}, **kwargs):
         if spec:
             readers = load_readers_by_keyword(**kwargs, spec=spec)
         else:
@@ -418,7 +432,7 @@ class ConfigReader:
     def get_dictionary_interface(self) -> DictionaryInterface:
         return DictionaryInterface(self.reader)
 
-    def check_section(self, section, not_empty=False) -> True:
+    def check_section(self, section: str, not_empty: bool = False) -> bool:
         """Check all keys of a section.
 
         :raises ValueError: If the value is not configured and can not be
@@ -434,7 +448,7 @@ class ConfigReader:
                                  .format(section, key))
         return True
 
-    def spec_to_argparse(self, parser):
+    def spec_to_argparse(self, parser: argparse.ArgumentParser) -> None:
         for section, _ in self.spec.items():
             group = parser.add_argument_group(
                 title=section,

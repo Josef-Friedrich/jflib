@@ -6,7 +6,7 @@ import stat
 import urllib.request
 
 
-def download(url: str, dest: str):
+def download(url: str, dest: str) -> None:
     """Download a file and save it under a destination path.
 
     :param url: The URL of the file to download.
@@ -17,7 +17,7 @@ def download(url: str, dest: str):
         shutil.copyfileobj(response, out_file)
 
 
-def make_executable(path: str):
+def make_executable(path: str) -> None:
     """Make a file executable.
 
     :param path: The path of the file
