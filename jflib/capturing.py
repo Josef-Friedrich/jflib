@@ -23,14 +23,13 @@ Capture stderr:
         print('line 1', file=sys.stderr)
 
 """
-from __future__ import annotations
 from io import StringIO
 import sys
 import re
-from typing import Literal, Union
+from typing import Literal, Union, List
 
 
-class Capturing(list):
+class Capturing(List[str]):
     """Capture the stdout or stderr output. This class is designed for unit
     tests.
 
@@ -61,7 +60,7 @@ class Capturing(list):
             sys.stderr = self._stringio = StringIO()
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *_):
         if self.clean_ansi:
             output = self._clean_ansi(self._stringio.getvalue())
         else:

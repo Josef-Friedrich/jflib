@@ -29,7 +29,7 @@ import typing
 import time
 import uuid
 
-from typing import List, Union, Tuple, Any
+from typing import Dict, List, Optional, Union, Tuple, Any
 from logging.handlers import BufferingHandler
 
 from . import termcolor, icinga
@@ -272,7 +272,9 @@ class Message(BaseClass):
     :param str log_records: Log records separated by new lines
     """
 
-    def __init__(self, **data):
+    _data: Dict[str, Any]
+
+    def __init__(self, **data: Any):
         self._data = data
 
     def __str__(self):
@@ -300,9 +302,11 @@ class Message(BaseClass):
         :rtype: str
         """
         performance_data = self._data.get('performance_data')
-        if performance_data:
-            pairs = []
-            for key, value in self._data.get('performance_data').items():
+        if performance_data and isinstance(performance_data, dict):
+            pairs: List[str] = []
+            key: str
+            value: Any
+            for key, value in performance_data.items():
                 pairs.append('{!s}={!s}'.format(key, value))
             return ' '.join(pairs)
         return ''
@@ -317,7 +321,7 @@ class Message(BaseClass):
 
     @property
     def message(self) -> str:
-        output = []
+        output: List[str] = []
         if self.prefix:
             output.append(self.prefix)
 
@@ -330,7 +334,7 @@ class Message(BaseClass):
     @property
     def message_monitoring(self) -> str:
         """message + performance_data"""
-        output = []
+        output: List[str] = []
         output.append(self.message)
         if self.performance_data:
             output.append('|')
@@ -348,7 +352,7 @@ class Message(BaseClass):
         if self.performance_data:
             output.append('Performance data: {}'.format(self.performance_data))
 
-        body = self._data.get('body', '')
+        body: str = self._data.get('body', '')
         if body:
             output.append('')
             output.append(body)
@@ -363,8 +367,8 @@ class Message(BaseClass):
         return '\n'.join(output)
 
     @property
-    def processes(self) -> str:
-        output = []
+    def processes(self) -> Optional[str]:
+        output: List[str] = []
         processes = self._data.get('processes')
         if processes:
             for process in processes:
@@ -602,6 +606,8 @@ CONFIG_READER_SPEC = {
 
 # Main code ###################################################################
 
+Args = Union[str, List[str], Tuple[str]]
+
 
 class Process:
     """Run a process.
@@ -618,9 +624,11 @@ class Process:
         executed.
     :param dict env: Defines the environment variables for the new process.
     """
+    args: Args
+    _queue: queue.Queue
 
-    def __init__(self, args: typing.Union[str, list, tuple],
-                 master_logger: logging.Logger = None, **kwargs):
+    def __init__(self, args: Args,
+                 master_logger: Optional[logging.Logger] = None, **kwargs):
         # self.args: typing.Union[str, list, tuple] = args
         self.args = args
         """Process arguments in various types."""
@@ -730,11 +738,11 @@ class Watch:
       parameter to not use the build in configuration reader.
     """
 
-    def __init__(self, config_file: str = None,
+    def __init__(self, config_file: Optional[str] = None,
                  service_name: str = 'command_watcher',
                  raise_exceptions: bool = True,
-                 config_reader: ConfigReader = None,
-                 report_channels: typing.List[BaseChannel] = None):
+                 config_reader: Optional[ConfigReader] = None,
+                 report_channels: Optional[List[BaseChannel]] = None):
         self._hostname = HOSTNAME
         """The hostname of machine the watcher running on."""
 

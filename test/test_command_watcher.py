@@ -596,7 +596,7 @@ class TestClassWatch(unittest.TestCase):
             user='u',
             password=1234,
             status=0,
-            host_name='nuc',
+            host_name=cwatcher.HOSTNAME,
             service_name='my_service',
             text_output='MY_SERVICE OK - My message',
             performance_data='perf_1=1 perf_2=test'
