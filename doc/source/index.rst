@@ -7,7 +7,6 @@ Welcome to jflib's documentation!
 
     command_watcher
     config_reader
-    send_nsca
     small_modules
 
 ******************
@@ -17,4 +16,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
