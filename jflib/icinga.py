@@ -1,12 +1,11 @@
-
-
-# https://icinga.com/docs/icinga-2/latest/doc/12-icinga2-api/#process-check-result
-
 import requests
 import json
 from typing import Optional
 import urllib3
 urllib3.disable_warnings()
+
+# https://icinga.com/docs/icinga-2/latest/doc/12-icinga2-api/#process-check-result
+
 
 # [icinga]
 # url
@@ -14,9 +13,8 @@ urllib3.disable_warnings()
 # password
 
 
-def send_passive_check(url: str, user: str, password: str, host_name: str,
-                       service_name: str, exit_status: int,
-                       plugin_output: str,
+def send_passive_check(status: int, host_name: str, service_name: str,
+                       text_output: str, url: str, user: str, password: str,
                        performance_data: Optional[str] = None):
     request_url = '{}/v1/actions/process-check-result'.format(url)
     headers = {
@@ -27,8 +25,8 @@ def send_passive_check(url: str, user: str, password: str, host_name: str,
         'type': 'Service',
         'filter': 'host.name=="{}" && service.name=="{}"'.format(host_name,
                                                                  service_name),
-        'exit_status': exit_status,
-        'plugin_output': plugin_output,
+        'exit_status': status,
+        'plugin_output': text_output,
     }
 
     if performance_data:
@@ -38,11 +36,3 @@ def send_passive_check(url: str, user: str, password: str, host_name: str,
                          headers=headers,
                          auth=(user, password),
                          data=json.dumps(data), verify=False)
-
-
-# result = send_passive_check(host_name='xps', service_name='apt',
-#                               exit_status=0, plugin_output='API test')
-
-# print(result.status_code)
-# print(result.text)
-# result.raise_for_status()

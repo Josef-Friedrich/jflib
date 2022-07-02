@@ -32,7 +32,7 @@ import uuid
 from typing import List
 from logging.handlers import BufferingHandler
 
-from . import termcolor, send_nsca
+from . import termcolor, send_nsca, icinga
 from .config_reader import ConfigReader
 from .send_email import send_email
 
@@ -460,6 +460,35 @@ class NscaChannel(BaseChannel):
         )
 
 
+class IcingaChannel(BaseChannel):
+    url: str
+    user: str
+    password: str
+    service_name: str
+
+    def __init__(self, url: str, user: str, password: str,
+                 service_name: str):
+        self.url = url
+        self.user = user
+        self.password = password
+        self.service_name = service_name
+
+    def __str__(self):
+        # No password!
+        return self._obj_to_str(['url', 'user', 'service_name'])
+
+    def report(self, message: Message):
+        icinga.send_passive_check(
+            status=message.status,
+            host_name=HOSTNAME,
+            service_name=message.service_name,
+            text_output=message.message_monitoring,
+            url=self.url,
+            user=self.user,
+            password=self.password
+        )
+
+
 class BeepChannel(BaseChannel):
     """Send beep sounds."""
 
@@ -503,10 +532,12 @@ class BeepChannel(BaseChannel):
 class Reporter:
     """Collect all channels."""
 
+    channels: List[BaseChannel]
+
     def __init__(self):
         self.channels = []
 
-    def add_channel(self, channel):
+    def add_channel(self, channel: BaseChannel):
         self.channels.append(channel)
 
     def report(self, **data):
@@ -575,6 +606,21 @@ CONFIG_READER_SPEC = {
         'port': {
             'description': 'The NSCA port.',
             'default': 5667,
+        },
+    },
+    'icinga': {
+        'url': {
+            'description': 'The HTTP URL. /v1/actions/process-check-result '
+                           'is appended.',
+            'not_empty': True,
+        },
+        'user': {
+            'description': 'The user for the HTTP authentification.',
+            'not_empty': True,
+        },
+        'password': {
+            'description': 'The password for the HTTP authentification.',
+            'not_empty': True,
         },
     },
     'beep': {
@@ -775,6 +821,19 @@ class Watch:
                 )
                 reporter.add_channel(nsca_reporter)
                 self.log.debug(nsca_reporter)
+            except (ValueError, KeyError):
+                pass
+
+            try:
+                config_reader.check_section('icinga')
+                icinga_reporter = IcingaChannel(
+                    url=self._conf.icinga.url,
+                    user=self._conf.icinga.user,
+                    password=self._conf.icinga.password,
+                    service_name=self._service_name,
+                )
+                reporter.add_channel(icinga_reporter)
+                self.log.debug(icinga_reporter)
             except (ValueError, KeyError):
                 pass
 
