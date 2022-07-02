@@ -20,7 +20,7 @@ def send_email(from_addr: str, to_addr: str, subject: str, body: str,
 
     :return: Problems
     """
-    message = MIMEText(body.encode('utf-8'), 'plain', 'utf-8')
+    message = MIMEText(body, 'plain', 'utf-8')
 
     message['Subject'] = Header(subject, 'utf-8')
     message['From'] = from_addr

@@ -28,6 +28,8 @@ import sys
 import re
 from typing import Literal, Union, List
 
+Stream = Union[Literal['stdout'], Literal['stderr']]
+
 
 class Capturing(List[str]):
     """Capture the stdout or stderr output. This class is designed for unit
@@ -43,7 +45,7 @@ class Capturing(List[str]):
 
     def __init__(
         self,
-        stream: Union[Literal['stdout'], Literal['stderr']] = 'stdout',
+        stream: Stream = 'stdout',
         clean_ansi: bool = False
     ):
         if stream not in ['stdout', 'stderr']:

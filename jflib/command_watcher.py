@@ -29,10 +29,10 @@ import typing
 import time
 import uuid
 
-from typing import Dict, List, Optional, Union, Tuple, Any
+from typing import IO, Dict, List, Optional, Sequence, Union, Tuple, Any
 from logging.handlers import BufferingHandler
 
-from . import termcolor, icinga
+from . import termcolor, icinga, capturing
 from .config_reader import ConfigReader
 from .send_email import send_email
 
@@ -116,12 +116,14 @@ class LoggingHandler(BufferingHandler):
     """Store of all logging records in the memory. Print all records on emit.
     """
 
-    def __init__(self, master_logger=None):
+    _master_logger:  Optional[logging.Logger]
+
+    def __init__(self, master_logger: Optional[logging.Logger] = None):
         BufferingHandler.__init__(self, capacity=1000000)
         self._master_logger = master_logger
 
     @staticmethod
-    def _print(record):
+    def _print(record: logging.LogRecord):
         """
         :param logging.LogRecord record: A record object.
         """
@@ -194,7 +196,7 @@ class LoggingHandler(BufferingHandler):
 
     @property
     def stdout(self):
-        messages = []
+        messages: List[str] = []
         for record in self.buffer:
             if record.levelname == 'STDOUT':
                 messages.append(record.msg)
@@ -202,7 +204,7 @@ class LoggingHandler(BufferingHandler):
 
     @property
     def stderr(self):
-        messages = []
+        messages: List[str] = []
         for record in self.buffer:
             if record.levelname == 'STDERR':
                 messages.append(record.msg)
@@ -211,13 +213,13 @@ class LoggingHandler(BufferingHandler):
     @property
     def all_records(self):
         """All log messages joined by line breaks."""
-        messages = []
+        messages: List[str] = []
         for record in self.buffer:
             messages.append(self.format(record))
         return '\n'.join(messages)
 
 
-def _log_stdout(self, message, *args, **kws):
+def _log_stdout(self: logging.Logger, message: object, *args: Any, **kws: Any):
     # Yes, logger takes its '*args' as 'args'.
     self._log(STDOUT, message, args, **kws)
 
@@ -225,7 +227,7 @@ def _log_stdout(self, message, *args, **kws):
 logging.Logger.stdout = _log_stdout
 
 
-def _log_stderr(self, message, *args, **kws):
+def _log_stderr(self: logging.Logger, message: object, *args: Any, **kws: Any):
     # Yes, logger takes its '*args' as 'args'.
     self._log(STDERR, message, args, **kws)
 
@@ -233,7 +235,7 @@ def _log_stderr(self, message, *args, **kws):
 logging.Logger.stderr = _log_stderr
 
 
-def setup_logging(master_logger: logging.Logger = None) -> \
+def setup_logging(master_logger: Optional[logging.Logger] = None) -> \
         typing.Tuple[logging.Logger, LoggingHandler]:
     """Setup a fresh logger for each watch action.
 
@@ -625,7 +627,7 @@ class Process:
     :param dict env: Defines the environment variables for the new process.
     """
     args: Args
-    _queue: queue.Queue
+    _queue: 'queue.Queue[Optional[Tuple[str, capturing.Stream]]]'
 
     def __init__(self, args: Args,
                  master_logger: Optional[logging.Logger] = None, **kwargs):
@@ -675,7 +677,7 @@ class Process:
         self.log.info('Execution time: {}'.format(timer.result()))
 
     @property
-    def args_normalized(self) -> list:
+    def args_normalized(self) -> Sequence[str]:
         """Normalized `args`, always a list"""
         if isinstance(self.args, str):
             return shlex.split(self.args)
@@ -702,10 +704,9 @@ class Process:
         """The count of lines of the current `stderr`."""
         return len(self.stderr.splitlines())
 
-    def _stdout_stderr_reader(self, pipe, stream):
+    def _stdout_stderr_reader(self, pipe: IO[str], stream: capturing.Stream):
         """
         :param object pipe: `process.stdout` or `process.stdout`
-        :param str stream: `stdout` or `stderr`
         """
         try:
             with pipe:
@@ -714,10 +715,9 @@ class Process:
         finally:
             self._queue.put(None)
 
-    def _start_thread(self, pipe, stream):
+    def _start_thread(self, pipe: Optional[IO[str]], stream: capturing.Stream):
         """
         :param object pipe: `process.stdout` or `process.stdout`
-        :param str stream: `stdout` or `stderr`
         """
         threading.Thread(
             target=self._stdout_stderr_reader,
