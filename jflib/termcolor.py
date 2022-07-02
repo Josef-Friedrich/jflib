@@ -27,6 +27,8 @@
 import os
 import re
 from typing import Literal, Optional, List, Protocol, TypeVar, TypedDict
+from typing_extensions import Unpack
+
 
 __ALL__ = ['colored', 'cprint']
 
@@ -157,7 +159,7 @@ class PrintArgs(TypedDict, total=False):
 
 def cprint(text: str, color: Optional[str] = None,
            on_color: Optional[str] = None,
-           attrs: Optional[List[str]] = None, **kwargs: PrintArgs):
+           attrs: Optional[List[str]] = None, **kwargs: Unpack[PrintArgs]):
     """Print colorize text.
 
     It accepts arguments of print function.

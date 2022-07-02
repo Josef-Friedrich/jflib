@@ -28,9 +28,9 @@ html_static_path = []
 htmlhelp_basename = 'jflibdoc'
 autodoc_default_options = {
     'members': True,
-    'undoc-members': True,
+    'undoc-members': False,
     'private-members': False,
-    'special-members': '',
+    'special-members': False,
     'show-inheritance': True,
 }
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}

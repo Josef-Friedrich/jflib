@@ -26,6 +26,10 @@ setup(
     url='https://github.com/Josef-Friedrich/jflib',
     python_requires='>=3.5',
     long_description=read('README.md'),
+    install_requires=[
+       'typing-extensions==4.3.0',
+       'requests==2.28.1'
+    ],
     long_description_content_type='text/markdown',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
