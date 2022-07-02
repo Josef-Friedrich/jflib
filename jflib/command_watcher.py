@@ -29,7 +29,7 @@ import typing
 import time
 import uuid
 
-from typing import List
+from typing import List, Union, Tuple, Any
 from logging.handlers import BufferingHandler
 
 from . import termcolor, icinga
@@ -445,13 +445,14 @@ class IcingaChannel(BaseChannel):
 
     def report(self, message: Message):
         icinga.send_passive_check(
+            url=self.url,
+            user=self.user,
+            password=self.password,
             status=message.status,
             host_name=HOSTNAME,
             service_name=message.service_name,
-            text_output=message.message_monitoring,
-            url=self.url,
-            user=self.user,
-            password=self.password
+            text_output=message.message,
+            performance_data=message.performance_data
         )
 
 
@@ -817,9 +818,9 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def run(self, args: typing.Union[str, list, tuple],
-            log: bool = True, ignore_exceptions: typing.List[int] = [],
-            **kwargs) -> Process:
+    def run(self, args: Union[str, List[str], Tuple[str]],
+            log: bool = True, ignore_exceptions: List[int] = [],
+            **kwargs: Any) -> Process:
         """
         Run a process.
 

@@ -4,13 +4,6 @@ from typing import Optional
 import urllib3
 urllib3.disable_warnings()
 
-# https://icinga.com/docs/icinga-2/latest/doc/12-icinga2-api/#process-check-result
-
-
-# [icinga]
-# url
-# user
-# password
 
 STATE_OK = 0
 STATE_WARNING = 1
@@ -25,9 +18,18 @@ States = {
 }
 
 
-def send_passive_check(status: int, host_name: str, service_name: str,
-                       text_output: str, url: str, user: str, password: str,
+def send_passive_check(url: str, user: str, password: str, status: int,
+                       host_name: str, service_name: str,
+                       text_output: str,
                        performance_data: Optional[str] = None):
+    """
+    https://icinga.com/docs/icinga-2/latest/doc/12-icinga2-api/#process-check-result
+
+    [icinga]
+    url
+    user
+    password
+    """
     request_url = '{}/v1/actions/process-check-result'.format(url)
     headers = {
         'Accept': 'application/json',

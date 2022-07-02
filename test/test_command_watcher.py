@@ -276,15 +276,16 @@ class TestClassIcingaChannel(unittest.TestCase):
         )
 
     def assert_called_with(self, mock: mock.Mock, status: int,
-                           text_output: str):
+                           text_output: str, performance_data: str):
         mock.assert_called_with(
-            host_name=cwatcher.HOSTNAME,
-            password='1234',
             url='1.2.3.4',
             user='u',
-            service_name='Service',
+            password='1234',
             status=status,
+            host_name=cwatcher.HOSTNAME,
+            service_name='my_service',
             text_output=text_output,
+            performance_data=performance_data
         )
 
     def send_passive_check(self, **kwargs):
@@ -322,7 +323,7 @@ class TestClassIcingaChannel(unittest.TestCase):
         )
         self.assert_called_with(
             send_passive_check, 3,
-            'MY_SERVICE UNKNOWN - text | perf_1=1 perf_2=lol')
+            'MY_SERVICE UNKNOWN - text', 'perf_1=1 perf_2=lol')
 
     def test_method_send_passive_check_kwargs(self):
         send_passive_check = self.send_passive_check(
@@ -332,7 +333,7 @@ class TestClassIcingaChannel(unittest.TestCase):
         )
         self.assert_called_with(
             send_passive_check, 3,
-            'MY_SERVICE UNKNOWN - text | perf_1=1 perf_2=lol'
+            'MY_SERVICE UNKNOWN - text', 'perf_1=1 perf_2=lol'
         )
 
     def test_method_send_passive_check_without_custom_output(self):
@@ -341,7 +342,7 @@ class TestClassIcingaChannel(unittest.TestCase):
             performance_data={'perf_1': 1, 'perf_2': 'lol'}
         )
         self.assert_called_with(send_passive_check, 0,
-                                'MY_SERVICE OK | perf_1=1 perf_2=lol')
+                                'MY_SERVICE OK', 'perf_1=1 perf_2=lol')
 
     def test_method_send_passive_check_without_custom_output_kwargs(self):
         send_passive_check = self.send_passive_check(
@@ -349,7 +350,7 @@ class TestClassIcingaChannel(unittest.TestCase):
             performance_data={'perf_1': 1, 'perf_2': 'lol'}
         )
         self.assert_called_with(
-            send_passive_check, 0, 'MY_SERVICE OK | perf_1=1 perf_2=lol'
+            send_passive_check, 0, 'MY_SERVICE OK', 'perf_1=1 perf_2=lol'
         )
 
 
@@ -591,14 +592,14 @@ class TestClassWatch(unittest.TestCase):
                 prefix='',
             )
         send_passive_check.assert_called_with(
-            encryption_method=1,
-            host_name=cwatcher.HOSTNAME,
-            password='1234',
-            port=5667,
-            remote_host='1.2.3.4',
-            service_name='my_service',
+            url='1.2.3.4',
+            user='u',
+            password=1234,
             status=0,
-            text_output='MY_SERVICE OK - My message | perf_1=1 perf_2=test'
+            host_name='nuc',
+            service_name='my_service',
+            text_output='MY_SERVICE OK - My message',
+            performance_data='perf_1=1 perf_2=test'
         )
 
         records = watch._log_handler.all_records
