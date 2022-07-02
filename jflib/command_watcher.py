@@ -32,7 +32,7 @@ import uuid
 from typing import List
 from logging.handlers import BufferingHandler
 
-from . import termcolor, send_nsca, icinga
+from . import termcolor, icinga
 from .config_reader import ConfigReader
 from .send_email import send_email
 
@@ -287,7 +287,7 @@ class Message(BaseClass):
     @property
     def status_text(self) -> str:
         """The status as a text word like `OK`."""
-        return send_nsca.States[self.status]
+        return icinga.States[self.status]
 
     @property
     def service_name(self) -> str:
@@ -423,40 +423,6 @@ class EmailChannel(BaseChannel):
             smtp_login=self.smtp_login,
             smtp_password=self.smtp_password,
             smtp_server=self.smtp_server
-        )
-
-
-class NscaChannel(BaseChannel):
-    """Wrapper around `send_nsca` to send NSCA messages. Set up the NSCA
-    client."""
-
-    def __init__(self, remote_host: str, password: str, encryption_method: int,
-                 port: int, service_name: str):
-        self.remote_host = remote_host
-        self.password = password
-        self.encryption_method = encryption_method
-        self.port = port
-        self.service_name = service_name
-
-    def __str__(self):
-        # No password!
-        return self._obj_to_str(['remote_host', 'encryption_method', 'port',
-                                 'service_name'])
-
-    def report(self, message: Message):
-        """Send a NSCA message to a remote NSCA server.
-
-        :param message: A message object.
-        """
-        send_nsca.send_nsca(
-            status=message.status,
-            host_name=HOSTNAME,
-            service_name=message.service_name,
-            text_output=message.message_monitoring,
-            remote_host=self.remote_host,
-            password=str(self.password),
-            encryption_method=self.encryption_method,
-            port=self.port,
         )
 
 
@@ -807,20 +773,6 @@ class Watch:
                 )
                 reporter.add_channel(email_reporter)
                 self.log.debug(email_reporter)
-            except (ValueError, KeyError):
-                pass
-
-            try:
-                config_reader.check_section('nsca')
-                nsca_reporter = NscaChannel(
-                    remote_host=self._conf.nsca.remote_host,
-                    password=self._conf.nsca.password,
-                    encryption_method=self._conf.nsca.encryption_method,
-                    port=self._conf.nsca.port,
-                    service_name=self._service_name,
-                )
-                reporter.add_channel(nsca_reporter)
-                self.log.debug(nsca_reporter)
             except (ValueError, KeyError):
                 pass
 

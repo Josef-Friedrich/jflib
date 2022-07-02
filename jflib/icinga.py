@@ -12,6 +12,18 @@ urllib3.disable_warnings()
 # user
 # password
 
+STATE_OK = 0
+STATE_WARNING = 1
+STATE_CRITICAL = 2
+STATE_UNKNOWN = 3
+
+States = {
+    STATE_OK: 'OK',
+    STATE_WARNING: 'WARNING',
+    STATE_CRITICAL: 'CRITICAL',
+    STATE_UNKNOWN: 'UNKNOWN',
+}
+
 
 def send_passive_check(status: int, host_name: str, service_name: str,
                        text_output: str, url: str, user: str, password: str,

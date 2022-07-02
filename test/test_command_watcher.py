@@ -264,93 +264,92 @@ class TestClassEmailChannel(unittest.TestCase):
         )
 
 
-class TestClassNscaChannel(unittest.TestCase):
+class TestClassIcingaChannel(unittest.TestCase):
+    icinga:  cwatcher.IcingaChannel
 
     def setUp(self):
-        self.nsca = cwatcher.NscaChannel(
-            remote_host='1.2.3.4',
+        self.icinga = cwatcher.IcingaChannel(
+            url='1.2.3.4',
+            user='u',
             password='1234',
-            encryption_method=1,
-            port=5667,
             service_name='Service',
         )
 
-    def assert_called_with(self, mock, status, text_output):
+    def assert_called_with(self, mock: mock.Mock, status: int,
+                           text_output: str):
         mock.assert_called_with(
-            encryption_method=1,
             host_name=cwatcher.HOSTNAME,
             password='1234',
-            port=5667,
-            remote_host='1.2.3.4',
-            service_name='my_service',
+            url='1.2.3.4',
+            user='u',
+            service_name='Service',
             status=status,
             text_output=text_output,
         )
 
-    def send_nsca(self, **kwargs):
+    def send_passive_check(self, **kwargs):
         message = cwatcher.Message(service_name='my_service', prefix='',
                                    **kwargs)
-        with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
-                send_nsca:
-            self.nsca.report(message)
-        return send_nsca
+        with mock.patch('jflib.command_watcher.icinga.send_passive_check') as \
+                send_passive_check:
+            self.icinga.report(message)
+        return send_passive_check
 
-    def test_property_remote_host(self):
-        self.assertEqual(self.nsca.remote_host, '1.2.3.4')
+    def test_property_url(self):
+        self.assertEqual(self.icinga.url, '1.2.3.4')
+
+    def test_property_user(self):
+        self.assertEqual(self.icinga.user, 'u')
 
     def test_property_password(self):
-        self.assertEqual(self.nsca.password, '1234')
-
-    def test_property_encryption_method(self):
-        self.assertEqual(self.nsca.encryption_method, 1)
-
-    def test_property_port(self):
-        self.assertEqual(self.nsca.port, 5667)
+        self.assertEqual(self.icinga.password, '1234')
 
     def test_property_service_name(self):
-        self.assertEqual(self.nsca.service_name, 'Service')
+        self.assertEqual(self.icinga.service_name, 'Service')
 
     def test_magic_method_str(self):
         self.assertEqual(
-            str(self.nsca),
-            "[NscaChannel] remote_host: '1.2.3.4', encryption_method: '1', "
-            "port: '5667', service_name: 'Service'"
+            str(self.icinga),
+            "[IcingaChannel] url: '1.2.3.4', user: 'u', service_name: "
+            "'Service'"
         )
 
-    def test_method_send_nsca(self):
-        send_nsca = self.send_nsca(
+    def test_method_send_passive_check(self):
+        send_passive_check = self.send_passive_check(
             status=3,
             custom_message='text',
             performance_data={'perf_1': 1, 'perf_2': 'lol'}
         )
         self.assert_called_with(
-            send_nsca, 3, 'MY_SERVICE UNKNOWN - text | perf_1=1 perf_2=lol')
+            send_passive_check, 3,
+            'MY_SERVICE UNKNOWN - text | perf_1=1 perf_2=lol')
 
-    def test_method_send_nsca_kwargs(self):
-        send_nsca = self.send_nsca(
+    def test_method_send_passive_check_kwargs(self):
+        send_passive_check = self.send_passive_check(
             status=3,
             custom_message='text',
             performance_data={'perf_1': 1, 'perf_2': 'lol'}
         )
         self.assert_called_with(
-            send_nsca, 3, 'MY_SERVICE UNKNOWN - text | perf_1=1 perf_2=lol'
+            send_passive_check, 3,
+            'MY_SERVICE UNKNOWN - text | perf_1=1 perf_2=lol'
         )
 
-    def test_method_send_nsca_without_custom_output(self):
-        send_nsca = self.send_nsca(
+    def test_method_send_passive_check_without_custom_output(self):
+        send_passive_check = self.send_passive_check(
             status=0,
             performance_data={'perf_1': 1, 'perf_2': 'lol'}
         )
-        self.assert_called_with(send_nsca, 0,
+        self.assert_called_with(send_passive_check, 0,
                                 'MY_SERVICE OK | perf_1=1 perf_2=lol')
 
-    def test_method_send_nsca_without_custom_output_kwargs(self):
-        send_nsca = self.send_nsca(
+    def test_method_send_passive_check_without_custom_output_kwargs(self):
+        send_passive_check = self.send_passive_check(
             status=0,
             performance_data={'perf_1': 1, 'perf_2': 'lol'}
         )
         self.assert_called_with(
-            send_nsca, 0, 'MY_SERVICE OK | perf_1=1 perf_2=lol'
+            send_passive_check, 0, 'MY_SERVICE OK | perf_1=1 perf_2=lol'
         )
 
 
@@ -359,7 +358,7 @@ class TestClassBeepChannel(unittest.TestCase):
     def setUp(self):
         self.beep = cwatcher.BeepChannel()
 
-    def report(self, status):
+    def report(self, status: int):
         message = cwatcher.Message(service_name='my_service', prefix='',
                                    status=status)
         with mock.patch('subprocess.run') as subprocess_run:
@@ -544,7 +543,7 @@ class TestClassWatch(unittest.TestCase):
         watch.log.info('info')
         watch.run('ls')
 
-        with mock.patch('jflib.command_watcher.send_nsca.send_nsca'), \
+        with mock.patch('jflib.command_watcher.icinga.send_passive_check'), \
                 mock.patch('smtplib.SMTP') as SMTP:
             watch.report(
                 status=0,
@@ -569,7 +568,7 @@ class TestClassWatch(unittest.TestCase):
 
     def test_method_report_channel_email_critical(self):
         watch = cwatcher.Watch(config_file=CONF, service_name='my_service')
-        with mock.patch('jflib.command_watcher.send_nsca.send_nsca'), \
+        with mock.patch('jflib.command_watcher.icinga.send_passive_check'), \
                 mock.patch('smtplib.SMTP') as SMTP:
             watch.report(status=2)
         server = SMTP.return_value
@@ -582,8 +581,8 @@ class TestClassWatch(unittest.TestCase):
 
     def test_method_report_channel_nsca(self):
         watch = cwatcher.Watch(config_file=CONF, service_name='my_service')
-        with mock.patch('jflib.command_watcher.send_nsca.send_nsca') as \
-                send_nsca, \
+        with mock.patch('jflib.command_watcher.icinga.send_passive_check') as \
+                send_passive_check, \
                 mock.patch('jflib.command_watcher.send_email'):
             watch.report(
                 status=0,
@@ -591,7 +590,7 @@ class TestClassWatch(unittest.TestCase):
                 performance_data={'perf_1': 1, 'perf_2': 'test'},
                 prefix='',
             )
-        send_nsca.assert_called_with(
+        send_passive_check.assert_called_with(
             encryption_method=1,
             host_name=cwatcher.HOSTNAME,
             password='1234',
