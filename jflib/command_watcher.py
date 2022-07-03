@@ -27,13 +27,15 @@ import textwrap
 import threading
 import typing
 import time
+from typing_extensions import Unpack
 import uuid
 
-from typing import IO, Dict, List, Optional, Sequence, Union, Tuple, Any
+from typing import IO, Dict, List, Literal, Optional, Sequence, TypedDict, \
+                   Union, Tuple, Any
 from logging.handlers import BufferingHandler
 
 from . import termcolor, icinga, capturing
-from .config_reader import ConfigReader
+from .config_reader import ConfigReader, Spec
 from .send_email import send_email
 
 
@@ -258,25 +260,48 @@ def setup_logging(master_logger: Optional[logging.Logger] = None) -> \
 # Reporting ###################################################################
 
 
+Status = Literal[0, 1, 2, 3]
+
+
+class MinimalMessageParams(TypedDict, total=False):
+
+    custom_message: str
+    """Custom message"""
+
+    prefix: str
+    """ Prefix of the report message."""
+
+    body: str
+    """ A longer report text."""
+
+    preformance_data: Dict[str, Any]
+    """ A dictionary like
+          `{'perf_1': 1, 'perf_2': 'test'}`"""
+
+
+class MessageParams(MinimalMessageParams, total=False):
+    status: Status
+    """ 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
+          Nagios / Icinga monitoring status / state."""
+
+    service_name: str
+    """The name of the service."""
+
+    log_records: str
+    """Log records separated by new lines"""
+
+    processes: List['Process']
+
+
 class Message(BaseClass):
     """
     This message class bundles all available message data into an object. The
     different reporters can choose which data they use.
-
-    :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
-        Nagios / Icinga monitoring status / state.
-    :param str service_name: The name of the service.
-    :param str custom_message: Custom message
-    :param str prefix: Prefix of the report message.
-    :param str body: A longer report text.
-    :param dict performance_data: A dictionary like
-        `{'perf_1': 1, 'perf_2': 'test'}`.
-    :param str log_records: Log records separated by new lines
     """
 
-    _data: Dict[str, Any]
+    _data: MessageParams
 
-    def __init__(self, **data: Any):
+    def __init__(self, **data: Unpack[MessageParams]):
         self._data = data
 
     def __str__(self):
@@ -513,7 +538,7 @@ class Reporter:
     def add_channel(self, channel: BaseChannel):
         self.channels.append(channel)
 
-    def report(self, **data):
+    def report(self, **data: Unpack[MessageParams]):
         message = Message(**data)
         for channel in self.channels:
             channel.report(message)
@@ -534,7 +559,7 @@ CONF_DEFAULTS = {
 }
 
 
-CONFIG_READER_SPEC = {
+CONFIG_READER_SPEC: Spec = {
     'email': {
         'from_addr': {
             'description': 'The email address of the sender.',
@@ -738,6 +763,11 @@ class Watch:
       parameter to not use the build in configuration reader.
     """
 
+    processes: List[Process]
+    """A list of completed processes
+    :py:class:`Process`. Everytime you use the method
+    `run()` the process object is appened in the list."""
+
     def __init__(self, config_file: Optional[str] = None,
                  service_name: str = 'command_watcher',
                  raise_exceptions: bool = True,
@@ -766,6 +796,9 @@ class Watch:
                 ini=config_file,
                 dictionary=CONF_DEFAULTS,
             )
+
+        if not config_reader:
+            raise Exception('No config_reader object')
 
         self._conf = config_reader.get_class_interface()
 
@@ -807,9 +840,6 @@ class Watch:
             reporter.channels = []
 
         self.processes = []
-        """A list of completed processes
-        :py:class:`Process`. Everytime you use the method
-        `run()` the process object is appened in the list."""
 
         self._raise_exceptions = raise_exceptions
         """Raise exceptions"""
@@ -826,7 +856,7 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def run(self, args: Union[str, List[str], Tuple[str]],
+    def run(self, args: Args,
             log: bool = True, ignore_exceptions: List[int] = [],
             **kwargs: Any) -> Process:
         """
@@ -856,16 +886,9 @@ class Watch:
             )
         return process
 
-    def report(self, status: int, **data) -> Message:
+    def report(self, status: Status,
+               **data: Unpack[MinimalMessageParams]) -> Message:
         """Report a message using the preconfigured channels.
-
-        :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
-          Nagios / Icinga monitoring status / state.
-        :param str custom_message: Custom message
-        :param str prefix: Prefix of the report message.
-        :param str body: A longer report text.
-        :param dict performance_data: A dictionary like
-          `{'perf_1': 1, 'perf_2': 'test'}`.
         """
         message = reporter.report(
             status=status,
@@ -877,24 +900,16 @@ class Watch:
         self.log.debug(message)
         return message
 
-    def final_report(self, **data) -> Message:
+    def final_report(self, **data: Unpack[MessageParams]) -> Message:
         """The same as the `report` method. Adds `execution_time` to the
         `performance_data`.
-
-        :param int status: 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
-          Nagios / Icinga monitoring status / state.
-        :param str custom_message: Custom message
-        :param str prefix: Prefix of the report message.
-        :param str body: A longer report text.
-        :param dict performance_data: A dictionary like
-          `{'perf_1': 1, 'perf_2': 'test'}`.
         """
         timer_result = self._timer.result()
         self.log.info(
             'Overall execution time: {}'.format(timer_result)
         )
         status = data.get('status', 0)
-        data_dict = dict(data)
+        data_dict: Dict[str, Any] = dict(data)
         if 'performance_data' not in data_dict:
             data_dict['performance_data'] = {}
         data_dict['performance_data']['execution_time'] = timer_result

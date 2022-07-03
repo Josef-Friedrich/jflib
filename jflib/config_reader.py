@@ -82,7 +82,7 @@ Mapping = Dict[str, str]
       `dest` is the property name of the `args` object."""
 
 
-class KeySpec(TypedDict):
+class KeySpec(TypedDict, total=False):
     description: str
     default: Any
     not_empty: bool
