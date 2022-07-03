@@ -1,2 +1,4 @@
-sphinx>=2.0.1
-sphinx-autodoc-typehints
+sphinx==5.0.2
+sphinx-autodoc-typehints==1.18.3
+typing-extensions==4.3.0
+requests==2.28.1
