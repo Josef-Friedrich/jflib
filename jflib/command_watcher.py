@@ -33,7 +33,7 @@ from typing_extensions import Unpack
 import uuid
 
 from typing import IO, Dict, List, Literal, Optional, Sequence, TypedDict, \
-    Union, Tuple, Any
+    Union, Tuple, Any, cast
 from logging.handlers import BufferingHandler
 
 from . import termcolor, icinga, capturing
@@ -103,7 +103,7 @@ class CommandWatcherError(Exception):
         reporter.report(
             status=2,
             custom_message='{}: {}'.format(self.__class__.__name__, msg),
-            **data,
+            **data,  # type: ignore
         )
 
 
@@ -257,24 +257,33 @@ class LoggingHandler(BufferingHandler):
         return '\n'.join(messages)
 
 
-def _log_stdout(self: logging.Logger, message: object, *args: Any, **kws: Any):
+class ExtendedLogger(logging.Logger):
+
+    def stdout(self, line: object, *args: Any, **kws: Any) -> None: ...
+    def stderr(self, line: object, *args: Any, **kws: Any) -> None: ...
+
+
+def _log_stdout(self: ExtendedLogger, message: object, *args: Any, **kws: Any):
     # Yes, logger takes its '*args' as 'args'.
     self._log(STDOUT, message, args, **kws)
 
 
-logging.Logger.stdout = _log_stdout
+extendedLogger: ExtendedLogger = cast(ExtendedLogger, logging.Logger)
 
 
-def _log_stderr(self: logging.Logger, message: object, *args: Any, **kws: Any):
+extendedLogger.stdout = _log_stdout  # type: ignore
+
+
+def _log_stderr(self: ExtendedLogger, message: object, *args: Any, **kws: Any):
     # Yes, logger takes its '*args' as 'args'.
     self._log(STDERR, message, args, **kws)
 
 
-logging.Logger.stderr = _log_stderr
+logging.Logger.stderr = _log_stderr  # type: ignore
 
 
 def setup_logging(master_logger: Optional[logging.Logger] = None) -> \
-        typing.Tuple[logging.Logger, LoggingHandler]:
+        typing.Tuple[ExtendedLogger, LoggingHandler]:
     """Setup a fresh logger for each watch action.
 
     :param master_logger: Forward all log messages to a master logger."""
@@ -290,7 +299,7 @@ def setup_logging(master_logger: Optional[logging.Logger] = None) -> \
     # the root logger is created with level WARNING.
     logger.setLevel(1)
     logger.addHandler(handler)
-    return (logger, handler)
+    return (cast(ExtendedLogger, logger), handler)
 
 
 # Reporting ###################################################################
@@ -667,7 +676,7 @@ class Process:
 
     _queue: 'queue.Queue[Optional[Tuple[bytes, capturing.Stream]]]'
 
-    log: logging.Logger
+    log: ExtendedLogger
     """A ready to go and configured logger."""
 
     log_handler: LoggingHandler
@@ -675,7 +684,7 @@ class Process:
     subprocess: subprocess.Popen[Any]
 
     def __init__(self, args: Args,
-                 master_logger: Optional[logging.Logger] = None,
+                 master_logger: Optional[ExtendedLogger] = None,
                  **kwargs: Unpack[ProcessArgs]):
         # self.args: typing.Union[str, list, tuple] = args
         self.args = args
@@ -782,7 +791,7 @@ class Watch:
     _service_name: str
     """A name of the watched service."""
 
-    log: logging.Logger
+    log: ExtendedLogger
     """A ready to go and configured logger."""
 
     _log_handler: LoggingHandler
