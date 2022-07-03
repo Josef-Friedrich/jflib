@@ -13,6 +13,8 @@ Module to watch the execution of shell scripts. Both streams (`stdout` and
     watch.run(['rsync', '-av', '/home', '/backup'])
 """
 
+from __future__ import annotations
+
 import abc
 import logging
 import os
@@ -31,16 +33,50 @@ from typing_extensions import Unpack
 import uuid
 
 from typing import IO, Dict, List, Literal, Optional, Sequence, TypedDict, \
-                   Union, Tuple, Any
+    Union, Tuple, Any, cast
 from logging.handlers import BufferingHandler
 
 from . import termcolor, icinga, capturing
-from .config_reader import ConfigReader, Spec
+from .config_reader import ClassInterface, ConfigReader, Spec
 from .send_email import send_email
 
 
 HOSTNAME = socket.gethostname()
 USERNAME = pwd.getpwuid(os.getuid()).pw_name
+
+
+Status = Literal[0, 1, 2, 3]
+
+
+class MinimalMessageParams(TypedDict, total=False):
+
+    custom_message: str
+    """Custom message"""
+
+    prefix: str
+    """ Prefix of the report message."""
+
+    body: str
+    """ A longer report text."""
+
+    preformance_data: Dict[str, Any]
+    """ A dictionary like
+          `{'perf_1': 1, 'perf_2': 'test'}`"""
+
+
+class MessageParams(MinimalMessageParams, total=False):
+
+    status: Status
+    """ 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
+          Nagios / Icinga monitoring status / state."""
+
+    service_name: str
+    """The name of the service."""
+
+    log_records: str
+    """Log records separated by new lines"""
+
+    processes: List['Process']
 
 
 class BaseClass:
@@ -63,11 +99,11 @@ class BaseClass:
 class CommandWatcherError(Exception):
     """Exception raised by this module."""
 
-    def __init__(self, msg, **data):
+    def __init__(self, msg: str, **data: Unpack[MessageParams]):
         reporter.report(
             status=2,
             custom_message='{}: {}'.format(self.__class__.__name__, msg),
-            **data,
+            **data,  # type: ignore
         )
 
 
@@ -221,24 +257,33 @@ class LoggingHandler(BufferingHandler):
         return '\n'.join(messages)
 
 
-def _log_stdout(self: logging.Logger, message: object, *args: Any, **kws: Any):
+class ExtendedLogger(logging.Logger):
+
+    def stdout(self, line: object, *args: Any, **kws: Any) -> None: ...
+    def stderr(self, line: object, *args: Any, **kws: Any) -> None: ...
+
+
+def _log_stdout(self: ExtendedLogger, message: object, *args: Any, **kws: Any):
     # Yes, logger takes its '*args' as 'args'.
     self._log(STDOUT, message, args, **kws)
 
 
-logging.Logger.stdout = _log_stdout
+extendedLogger: ExtendedLogger = cast(ExtendedLogger, logging.Logger)
 
 
-def _log_stderr(self: logging.Logger, message: object, *args: Any, **kws: Any):
+extendedLogger.stdout = _log_stdout  # type: ignore
+
+
+def _log_stderr(self: ExtendedLogger, message: object, *args: Any, **kws: Any):
     # Yes, logger takes its '*args' as 'args'.
     self._log(STDERR, message, args, **kws)
 
 
-logging.Logger.stderr = _log_stderr
+logging.Logger.stderr = _log_stderr  # type: ignore
 
 
 def setup_logging(master_logger: Optional[logging.Logger] = None) -> \
-        typing.Tuple[logging.Logger, LoggingHandler]:
+        typing.Tuple[ExtendedLogger, LoggingHandler]:
     """Setup a fresh logger for each watch action.
 
     :param master_logger: Forward all log messages to a master logger."""
@@ -254,43 +299,10 @@ def setup_logging(master_logger: Optional[logging.Logger] = None) -> \
     # the root logger is created with level WARNING.
     logger.setLevel(1)
     logger.addHandler(handler)
-    return (logger, handler)
+    return (cast(ExtendedLogger, logger), handler)
 
 
 # Reporting ###################################################################
-
-
-Status = Literal[0, 1, 2, 3]
-
-
-class MinimalMessageParams(TypedDict, total=False):
-
-    custom_message: str
-    """Custom message"""
-
-    prefix: str
-    """ Prefix of the report message."""
-
-    body: str
-    """ A longer report text."""
-
-    preformance_data: Dict[str, Any]
-    """ A dictionary like
-          `{'perf_1': 1, 'perf_2': 'test'}`"""
-
-
-class MessageParams(MinimalMessageParams, total=False):
-    status: Status
-    """ 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
-          Nagios / Icinga monitoring status / state."""
-
-    service_name: str
-    """The name of the service."""
-
-    log_records: str
-    """Log records separated by new lines"""
-
-    processes: List['Process']
 
 
 class Message(BaseClass):
@@ -636,6 +648,20 @@ CONFIG_READER_SPEC: Spec = {
 Args = Union[str, List[str], Tuple[str]]
 
 
+class ProcessArgs(TypedDict, total=False):
+    shell: bool
+    """If true, the command will be executed through the
+        shell.
+    """
+
+    cwd: str
+    """Sets the current directory before the child is
+        executed."""
+
+    env: Dict[str, Any]
+    """Defines the environment variables for the new process."""
+
+
 class Process:
     """Run a process.
 
@@ -644,33 +670,30 @@ class Process:
 
     :param args: List, tuple or string. A sequence of
         process arguments, like `subprocess.Popen(args)`.
-    :param master_logger:
-    :param bool shell: If true, the command will be executed through the
-        shell.
-    :param str cwd: Sets the current directory before the child is
-        executed.
-    :param dict env: Defines the environment variables for the new process.
     """
     args: Args
-    _queue: 'queue.Queue[Optional[Tuple[str, capturing.Stream]]]'
+    """Process arguments in various types."""
+
+    _queue: 'queue.Queue[Optional[Tuple[bytes, capturing.Stream]]]'
+
+    log: ExtendedLogger
+    """A ready to go and configured logger."""
+
+    log_handler: LoggingHandler
+
+    subprocess: subprocess.Popen[Any]
 
     def __init__(self, args: Args,
-                 master_logger: Optional[logging.Logger] = None, **kwargs):
+                 master_logger: Optional[ExtendedLogger] = None,
+                 **kwargs: Unpack[ProcessArgs]):
         # self.args: typing.Union[str, list, tuple] = args
         self.args = args
-        """Process arguments in various types."""
 
         self._queue = queue.Queue()
-        """An instance of :py:class:`queue.Queue`."""
 
         log, log_handler = setup_logging(master_logger=master_logger)
-        # self.log: logging.Logger = log
         self.log = log
-        """A ready to go and configured logger. An instance of
-        :py:class:`logging.Logger`."""
-        # self.log_handler: LoggingHandler = log_handler
         self.log_handler = log_handler
-        """An instance of :py:class:`LoggingHandler`."""
 
         self.log.info('Run command: {}'.format(' '.join(self.args_normalized)))
         timer = Timer()
@@ -683,7 +706,6 @@ class Process:
             # bufsize=1,
             **kwargs
         )
-        """subprocess"""
 
         self._start_thread(self.subprocess.stdout, 'stdout')
         self._start_thread(self.subprocess.stderr, 'stderr')
@@ -729,7 +751,7 @@ class Process:
         """The count of lines of the current `stderr`."""
         return len(self.stderr.splitlines())
 
-    def _stdout_stderr_reader(self, pipe: IO[str], stream: capturing.Stream):
+    def _stdout_stderr_reader(self, pipe: IO[bytes], stream: capturing.Stream):
         """
         :param object pipe: `process.stdout` or `process.stdout`
         """
@@ -763,10 +785,28 @@ class Watch:
       parameter to not use the build in configuration reader.
     """
 
+    _hostname: str
+    """The hostname of machine the watcher running on."""
+
+    _service_name: str
+    """A name of the watched service."""
+
+    log: ExtendedLogger
+    """A ready to go and configured logger."""
+
+    _log_handler: LoggingHandler
+
     processes: List[Process]
     """A list of completed processes
     :py:class:`Process`. Everytime you use the method
     `run()` the process object is appened in the list."""
+
+    _conf: Optional[ClassInterface]
+
+    _raise_exceptions: bool
+    """Raise exceptions"""
+
+    _timer: Timer
 
     def __init__(self, config_file: Optional[str] = None,
                  service_name: str = 'command_watcher',
@@ -774,21 +814,17 @@ class Watch:
                  config_reader: Optional[ConfigReader] = None,
                  report_channels: Optional[List[BaseChannel]] = None):
         self._hostname = HOSTNAME
-        """The hostname of machine the watcher running on."""
 
         self._service_name = service_name
-        """A name of the watched service."""
 
         log, log_handler = setup_logging()
+
         self.log = log
-        """A ready to go and configured logger. An instance of
-        :py:class:`logging.Logger`."""
         self.log.info('Hostname: {}'.format(self._hostname))
+
         self._log_handler = log_handler
-        """An instance of :py:class:`LoggingHandler`."""
 
         self._conf = None
-        """An instance of :py:class:`jflib.config_reader.ClassInterface`."""
 
         if not config_reader and config_file:
             config_reader = ConfigReader(
@@ -842,7 +878,6 @@ class Watch:
         self.processes = []
 
         self._raise_exceptions = raise_exceptions
-        """Raise exceptions"""
 
         self._timer = Timer()
 
@@ -856,9 +891,11 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def run(self, args: Args,
-            log: bool = True, ignore_exceptions: List[int] = [],
-            **kwargs: Any) -> Process:
+    def run(self,
+            args: Args,
+            log: bool = True,
+            ignore_exceptions: List[int] = [],
+            **kwargs: Unpack[ProcessArgs]) -> Process:
         """
         Run a process.
 
