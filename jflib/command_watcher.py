@@ -37,7 +37,7 @@ from typing import IO, Dict, List, Literal, Optional, Sequence, TypedDict, \
 from logging.handlers import BufferingHandler
 
 from . import termcolor, icinga, capturing
-from .config_reader import ConfigReader, Spec
+from .config_reader import ClassInterface, ConfigReader, Spec
 from .send_email import send_email
 
 
@@ -661,31 +661,29 @@ class Process:
 
     :param args: List, tuple or string. A sequence of
         process arguments, like `subprocess.Popen(args)`.
-    :param master_logger:
-
     """
     args: Args
-    _queue: 'queue.Queue[Optional[Tuple[str, capturing.Stream]]]'
+    """Process arguments in various types."""
+
+    _queue: 'queue.Queue[Optional[Tuple[bytes, capturing.Stream]]]'
+
     log: logging.Logger
-    """A ready to go and configured logger. An instance of
-        :py:class:`logging.Logger`."""
-    subprocess: subprocess.Popen[Any]
+    """A ready to go and configured logger."""
+
     log_handler: LoggingHandler
+
+    subprocess: subprocess.Popen[Any]
 
     def __init__(self, args: Args,
                  master_logger: Optional[logging.Logger] = None,
                  **kwargs: Unpack[ProcessArgs]):
         # self.args: typing.Union[str, list, tuple] = args
         self.args = args
-        """Process arguments in various types."""
 
         self._queue = queue.Queue()
 
         log, log_handler = setup_logging(master_logger=master_logger)
-        # self.log: logging.Logger = log
         self.log = log
-
-        # self.log_handler: LoggingHandler = log_handler
         self.log_handler = log_handler
 
         self.log.info('Run command: {}'.format(' '.join(self.args_normalized)))
@@ -699,7 +697,6 @@ class Process:
             # bufsize=1,
             **kwargs
         )
-        """subprocess"""
 
         self._start_thread(self.subprocess.stdout, 'stdout')
         self._start_thread(self.subprocess.stderr, 'stderr')
@@ -745,7 +742,7 @@ class Process:
         """The count of lines of the current `stderr`."""
         return len(self.stderr.splitlines())
 
-    def _stdout_stderr_reader(self, pipe: IO[str], stream: capturing.Stream):
+    def _stdout_stderr_reader(self, pipe: IO[bytes], stream: capturing.Stream):
         """
         :param object pipe: `process.stdout` or `process.stdout`
         """
@@ -779,10 +776,23 @@ class Watch:
       parameter to not use the build in configuration reader.
     """
 
+    _hostname: str
+    """The hostname of machine the watcher running on."""
+
+    _service_name: str
+    """A name of the watched service."""
+
+    log: logging.Logger
+    """A ready to go and configured logger."""
+
+    _log_handler: LoggingHandler
+
     processes: List[Process]
     """A list of completed processes
     :py:class:`Process`. Everytime you use the method
     `run()` the process object is appened in the list."""
+
+    _conf: Optional[ClassInterface]
 
     def __init__(self, config_file: Optional[str] = None,
                  service_name: str = 'command_watcher',
@@ -790,21 +800,17 @@ class Watch:
                  config_reader: Optional[ConfigReader] = None,
                  report_channels: Optional[List[BaseChannel]] = None):
         self._hostname = HOSTNAME
-        """The hostname of machine the watcher running on."""
 
         self._service_name = service_name
-        """A name of the watched service."""
 
         log, log_handler = setup_logging()
+
         self.log = log
-        """A ready to go and configured logger. An instance of
-        :py:class:`logging.Logger`."""
         self.log.info('Hostname: {}'.format(self._hostname))
+
         self._log_handler = log_handler
-        """An instance of :py:class:`LoggingHandler`."""
 
         self._conf = None
-        """An instance of :py:class:`jflib.config_reader.ClassInterface`."""
 
         if not config_reader and config_file:
             config_reader = ConfigReader(
@@ -872,9 +878,11 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def run(self, args: Args,
-            log: bool = True, ignore_exceptions: List[int] = [],
-            **kwargs: Any) -> Process:
+    def run(self,
+            args: Args,
+            log: bool = True,
+            ignore_exceptions: List[int] = [],
+            **kwargs: Unpack[ProcessArgs]) -> Process:
         """
         Run a process.
 
