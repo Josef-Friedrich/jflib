@@ -13,6 +13,8 @@ Module to watch the execution of shell scripts. Both streams (`stdout` and
     watch.run(['rsync', '-av', '/home', '/backup'])
 """
 
+from __future__ import annotations
+
 import abc
 import logging
 import os
@@ -31,7 +33,7 @@ from typing_extensions import Unpack
 import uuid
 
 from typing import IO, Dict, List, Literal, Optional, Sequence, TypedDict, \
-                   Union, Tuple, Any
+    Union, Tuple, Any
 from logging.handlers import BufferingHandler
 
 from . import termcolor, icinga, capturing
@@ -41,6 +43,40 @@ from .send_email import send_email
 
 HOSTNAME = socket.gethostname()
 USERNAME = pwd.getpwuid(os.getuid()).pw_name
+
+
+Status = Literal[0, 1, 2, 3]
+
+
+class MinimalMessageParams(TypedDict, total=False):
+
+    custom_message: str
+    """Custom message"""
+
+    prefix: str
+    """ Prefix of the report message."""
+
+    body: str
+    """ A longer report text."""
+
+    preformance_data: Dict[str, Any]
+    """ A dictionary like
+          `{'perf_1': 1, 'perf_2': 'test'}`"""
+
+
+class MessageParams(MinimalMessageParams, total=False):
+
+    status: Status
+    """ 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
+          Nagios / Icinga monitoring status / state."""
+
+    service_name: str
+    """The name of the service."""
+
+    log_records: str
+    """Log records separated by new lines"""
+
+    processes: List['Process']
 
 
 class BaseClass:
@@ -63,7 +99,7 @@ class BaseClass:
 class CommandWatcherError(Exception):
     """Exception raised by this module."""
 
-    def __init__(self, msg, **data):
+    def __init__(self, msg: str, **data: Unpack[MessageParams]):
         reporter.report(
             status=2,
             custom_message='{}: {}'.format(self.__class__.__name__, msg),
@@ -258,39 +294,6 @@ def setup_logging(master_logger: Optional[logging.Logger] = None) -> \
 
 
 # Reporting ###################################################################
-
-
-Status = Literal[0, 1, 2, 3]
-
-
-class MinimalMessageParams(TypedDict, total=False):
-
-    custom_message: str
-    """Custom message"""
-
-    prefix: str
-    """ Prefix of the report message."""
-
-    body: str
-    """ A longer report text."""
-
-    preformance_data: Dict[str, Any]
-    """ A dictionary like
-          `{'perf_1': 1, 'perf_2': 'test'}`"""
-
-
-class MessageParams(MinimalMessageParams, total=False):
-    status: Status
-    """ 0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
-          Nagios / Icinga monitoring status / state."""
-
-    service_name: str
-    """The name of the service."""
-
-    log_records: str
-    """Log records separated by new lines"""
-
-    processes: List['Process']
 
 
 class Message(BaseClass):
@@ -636,6 +639,20 @@ CONFIG_READER_SPEC: Spec = {
 Args = Union[str, List[str], Tuple[str]]
 
 
+class ProcessArgs(TypedDict, total=False):
+    shell: bool
+    """If true, the command will be executed through the
+        shell.
+    """
+
+    cwd: str
+    """Sets the current directory before the child is
+        executed."""
+
+    env: Dict[str, Any]
+    """Defines the environment variables for the new process."""
+
+
 class Process:
     """Run a process.
 
@@ -645,32 +662,31 @@ class Process:
     :param args: List, tuple or string. A sequence of
         process arguments, like `subprocess.Popen(args)`.
     :param master_logger:
-    :param bool shell: If true, the command will be executed through the
-        shell.
-    :param str cwd: Sets the current directory before the child is
-        executed.
-    :param dict env: Defines the environment variables for the new process.
+
     """
     args: Args
     _queue: 'queue.Queue[Optional[Tuple[str, capturing.Stream]]]'
+    log: logging.Logger
+    """A ready to go and configured logger. An instance of
+        :py:class:`logging.Logger`."""
+    subprocess: subprocess.Popen[Any]
+    log_handler: LoggingHandler
 
     def __init__(self, args: Args,
-                 master_logger: Optional[logging.Logger] = None, **kwargs):
+                 master_logger: Optional[logging.Logger] = None,
+                 **kwargs: Unpack[ProcessArgs]):
         # self.args: typing.Union[str, list, tuple] = args
         self.args = args
         """Process arguments in various types."""
 
         self._queue = queue.Queue()
-        """An instance of :py:class:`queue.Queue`."""
 
         log, log_handler = setup_logging(master_logger=master_logger)
         # self.log: logging.Logger = log
         self.log = log
-        """A ready to go and configured logger. An instance of
-        :py:class:`logging.Logger`."""
+
         # self.log_handler: LoggingHandler = log_handler
         self.log_handler = log_handler
-        """An instance of :py:class:`LoggingHandler`."""
 
         self.log.info('Run command: {}'.format(' '.join(self.args_normalized)))
         timer = Timer()
