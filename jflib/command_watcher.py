@@ -803,6 +803,11 @@ class Watch:
 
     _conf: Optional[ClassInterface]
 
+    _raise_exceptions: bool
+    """Raise exceptions"""
+
+    _timer: Timer
+
     def __init__(self, config_file: Optional[str] = None,
                  service_name: str = 'command_watcher',
                  raise_exceptions: bool = True,
@@ -873,7 +878,6 @@ class Watch:
         self.processes = []
 
         self._raise_exceptions = raise_exceptions
-        """Raise exceptions"""
 
         self._timer = Timer()
 
