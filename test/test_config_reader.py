@@ -1,20 +1,14 @@
-import os
-import unittest
 import argparse
+import os
 import tempfile
+import unittest
 
 from jflib import config_reader
-from jflib.config_reader import \
-    ArgparseReader, \
-    ConfigReader, \
-    ConfigValueError, \
-    DictionaryReader, \
-    EnvironReader, \
-    IniReader, \
-    load_readers_by_keyword, \
-    ReaderSelector, \
-    ReaderBase, \
-    validate_key
+from jflib.config_reader import (ArgparseReader, ConfigReader,
+                                 ConfigValueError, DictionaryReader,
+                                 EnvironReader, IniReader, ReaderBase,
+                                 ReaderSelector, load_readers_by_keyword,
+                                 validate_key)
 
 FILES_DIR = os.path.join(os.path.dirname(__file__), 'files')
 

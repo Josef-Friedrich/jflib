@@ -23,10 +23,10 @@ Capture stderr:
         print('line 1', file=sys.stderr)
 
 """
-from io import StringIO
-import sys
 import re
-from typing import Literal, Union, List
+import sys
+from io import StringIO
+from typing import List, Literal, Union
 
 Stream = Union[Literal['stdout'], Literal['stderr']]
 

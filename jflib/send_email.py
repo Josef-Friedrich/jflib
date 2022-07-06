@@ -1,7 +1,7 @@
 import smtplib
-from email.utils import formatdate
-from email.mime.text import MIMEText
 from email.header import Header
+from email.mime.text import MIMEText
+from email.utils import formatdate
 
 
 def send_email(from_addr: str, to_addr: str, subject: str, body: str,

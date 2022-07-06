@@ -1,13 +1,7 @@
 import unittest
 
-from jflib import \
-    argparser_to_readme, \
-    Capturing, \
-    colored, \
-    ConfigReader, \
-    cprint, \
-    send_email, \
-    Watch
+from jflib import (Capturing, ConfigReader, Watch, argparser_to_readme,
+                   colored, cprint, send_email)
 
 
 class TestImports(unittest.TestCase):

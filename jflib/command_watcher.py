@@ -21,25 +21,24 @@ import os
 import pwd
 import queue
 import shlex
+import shutil
 import socket
 import subprocess
-import shutil
 import sys
 import textwrap
 import threading
-import typing
 import time
-from typing_extensions import Unpack
+import typing
 import uuid
-
-from typing import IO, Dict, List, Literal, Optional, Sequence, TypedDict, \
-    Union, Tuple, Any, cast
 from logging.handlers import BufferingHandler
+from typing import (IO, Any, Dict, List, Literal, Optional, Sequence, Tuple,
+                    TypedDict, Union, cast)
 
-from . import termcolor, icinga, capturing
+from typing_extensions import Unpack
+
+from . import capturing, icinga, termcolor
 from .config_reader import ClassInterface, ConfigReader, Spec
 from .send_email import send_email
-
 
 HOSTNAME = socket.gethostname()
 USERNAME = pwd.getpwuid(os.getuid()).pw_name

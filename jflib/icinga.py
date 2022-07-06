@@ -1,7 +1,9 @@
-import requests
 import json
 from typing import Optional
+
+import requests
 import urllib3
+
 urllib3.disable_warnings()
 
 

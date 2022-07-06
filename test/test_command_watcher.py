@@ -2,9 +2,8 @@ import os
 import unittest
 from unittest import mock
 
-from jflib.capturing import Capturing
 from jflib import command_watcher as cwatcher
-
+from jflib.capturing import Capturing
 
 DIR_FILES = os.path.join(os.path.dirname(__file__), 'files')
 CONF = os.path.join(DIR_FILES, 'command_watcher', 'conf.ini')

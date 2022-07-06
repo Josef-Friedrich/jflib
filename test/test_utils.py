@@ -1,8 +1,9 @@
-import unittest
-from jflib.utils import download, make_executable
-import tempfile
 import os
 import stat
+import tempfile
+import unittest
+
+from jflib.utils import download, make_executable
 
 
 class TestUtils(unittest.TestCase):
