@@ -2,8 +2,6 @@ import os
 
 from setuptools import setup
 
-import versioneer
-
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -15,8 +13,7 @@ setup(
     author_email='josef@friedrich.rocks',
     description=('A collection of my Python library snippets. Maybe they are '
                  'useful for someone else.'),
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+    version='0.0.0',
     license='MIT',
     project_urls={
         'Documentation': 'http://jflib.readthedocs.io/en/latest/',
