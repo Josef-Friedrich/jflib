@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jflib"
-version = "0.4.6"
+version = "1.0.0"
 description = "A collection of my Python library snippets. Maybe they are useful for someone else."
 authors = ["Josef Friedrich <josef@friedrich.rocks>"]
 license = "MIT"
