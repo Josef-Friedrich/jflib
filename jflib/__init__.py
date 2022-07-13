@@ -5,4 +5,4 @@ from .config_reader import ConfigReader  # noqa: F401
 from .send_email import send_email  # noqa: F401
 from .termcolor import colored, cprint  # noqa: F401
 
-__version__ = '0.0.0'
+__version__ = '0.4.6'
