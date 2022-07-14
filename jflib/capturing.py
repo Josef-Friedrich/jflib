@@ -22,6 +22,11 @@ Capture stderr:
     with Capturing(stream='stderr') as output:
         print('line 1', file=sys.stderr)
 
+
+https://capturer.readthedocs.io/en/latest/
+https://github.com/bskinn/stdio-mgr
+https://github.com/minrk/wurlitzer
+https://pypi.org/project/OutputCatcher/0.0.9/#files
 """
 import re
 import sys
