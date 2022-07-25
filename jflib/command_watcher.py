@@ -31,8 +31,19 @@ import time
 import typing
 import uuid
 from logging.handlers import BufferingHandler
-from typing import (IO, Any, Dict, List, Literal, Optional, Sequence, Tuple,
-                    TypedDict, Union, cast)
+from typing import (
+    IO,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+    cast,
+)
 
 from typing_extensions import Unpack
 
@@ -75,24 +86,22 @@ class MessageParams(MinimalMessageParams, total=False):
     log_records: str
     """Log records separated by new lines"""
 
-    processes: List['Process']
+    processes: List["Process"]
 
 
 class BaseClass:
-
     def _obj_to_str(self, attributes: List[str] = []) -> str:
         if not attributes:
             attributes = dir(self)
         output: List[str] = []
         for attribute in attributes:
-            if not attribute.startswith('_') and \
-               not callable(getattr(self, attribute)):
+            if not attribute.startswith("_") and not callable(getattr(self, attribute)):
                 value = getattr(self, attribute)
                 if value:
                     value = textwrap.shorten(str(value), width=64)
-                    value = value.replace('\n', ' ')
-                    output.append('{}: \'{}\''.format(attribute, value))
-        return '[{}] {}'.format(self.__class__.__name__, ', '.join(output))
+                    value = value.replace("\n", " ")
+                    output.append("{}: '{}'".format(attribute, value))
+        return "[{}] {}".format(self.__class__.__name__, ", ".join(output))
 
 
 class CommandWatcherError(Exception):
@@ -101,7 +110,7 @@ class CommandWatcherError(Exception):
     def __init__(self, msg: str, **data: Unpack[MessageParams]):
         reporter.report(
             status=2,
-            custom_message='{}: {}'.format(self.__class__.__name__, msg),
+            custom_message="{}: {}".format(self.__class__.__name__, msg),
             **data,  # type: ignore
         )
 
@@ -127,7 +136,7 @@ class Timer:
         :rtype: str"""
         self.stop = time.time()
         self.interval = self.stop - self.start
-        return '{:.3f}s'.format(self.interval)
+        return "{:.3f}s".format(self.interval)
 
 
 # Logging #####################################################################
@@ -141,19 +150,18 @@ class Timer:
 # --> STDOUT 5
 # NOTSET 0
 STDERR = 35
-logging.addLevelName(STDERR, 'STDERR')
+logging.addLevelName(STDERR, "STDERR")
 STDOUT = 5
-logging.addLevelName(STDOUT, 'STDOUT')
+logging.addLevelName(STDOUT, "STDOUT")
 
-LOGFMT = '%(asctime)s_%(msecs)03d %(levelname)s %(message)s'
-DATEFMT = '%Y%m%d_%H%M%S'
+LOGFMT = "%(asctime)s_%(msecs)03d %(levelname)s %(message)s"
+DATEFMT = "%Y%m%d_%H%M%S"
 
 
 class LoggingHandler(BufferingHandler):
-    """Store of all logging records in the memory. Print all records on emit.
-    """
+    """Store of all logging records in the memory. Print all records on emit."""
 
-    _master_logger:  Optional[logging.Logger]
+    _master_logger: Optional[logging.Logger]
 
     def __init__(self, master_logger: Optional[logging.Logger] = None):
         BufferingHandler.__init__(self, capacity=1000000)
@@ -174,33 +182,33 @@ class LoggingHandler(BufferingHandler):
         # --> STDOUT 5
         # NOTSET 0
         attr = None
-        if level == 'CRITICAL':
-            color = 'red'
-            attr = 'bold'
-        elif level == 'ERROR':
-            color = 'red'
-        elif level == 'STDERR':
-            color = 'red'
-            attr = 'dark'
-        elif level == 'WARNING':
-            color = 'yellow'
-        elif level == 'INFO':
-            color = 'green'
-        elif level == 'DEBUG':
-            color = 'white'
-        elif level == 'STDOUT':
-            color = 'white'
-            attr = 'dark'
-        elif level == 'NOTSET':
-            color = 'grey'
+        if level == "CRITICAL":
+            color = "red"
+            attr = "bold"
+        elif level == "ERROR":
+            color = "red"
+        elif level == "STDERR":
+            color = "red"
+            attr = "dark"
+        elif level == "WARNING":
+            color = "yellow"
+        elif level == "INFO":
+            color = "green"
+        elif level == "DEBUG":
+            color = "white"
+        elif level == "STDOUT":
+            color = "white"
+            attr = "dark"
+        elif level == "NOTSET":
+            color = "grey"
         else:
-            color = 'grey'
+            color = "grey"
 
         if attr:
-            reverse = ['reverse', attr]
+            reverse = ["reverse", attr]
             normal = [attr]
         else:
-            reverse = ['reverse']
+            reverse = ["reverse"]
             normal = []
 
         if record.levelno >= STDERR:
@@ -208,16 +216,19 @@ class LoggingHandler(BufferingHandler):
         else:
             stream = sys.stdout
 
-        created = '{}_{:03d}'.format(
+        created = "{}_{:03d}".format(
             time.strftime(DATEFMT, time.localtime(record.created)),
             int(record.msecs),
         )
 
-        print('{} {} {}'.format(
-            created,
-            termcolor.colored(' {:<8} '.format(level), color, attrs=reverse),
-            termcolor.colored(record.msg, color, attrs=normal),
-        ), file=stream)
+        print(
+            "{} {} {}".format(
+                created,
+                termcolor.colored(" {:<8} ".format(level), color, attrs=reverse),
+                termcolor.colored(record.msg, color, attrs=normal),
+            ),
+            file=stream,
+        )
 
     def emit(self, record: logging.LogRecord):
         """
@@ -235,17 +246,17 @@ class LoggingHandler(BufferingHandler):
     def stdout(self):
         messages: List[str] = []
         for record in self.buffer:
-            if record.levelname == 'STDOUT':
+            if record.levelname == "STDOUT":
                 messages.append(record.msg)
-        return '\n'.join(messages)
+        return "\n".join(messages)
 
     @property
     def stderr(self):
         messages: List[str] = []
         for record in self.buffer:
-            if record.levelname == 'STDERR':
+            if record.levelname == "STDERR":
                 messages.append(record.msg)
-        return '\n'.join(messages)
+        return "\n".join(messages)
 
     @property
     def all_records(self):
@@ -253,13 +264,15 @@ class LoggingHandler(BufferingHandler):
         messages: List[str] = []
         for record in self.buffer:
             messages.append(self.format(record))
-        return '\n'.join(messages)
+        return "\n".join(messages)
 
 
 class ExtendedLogger(logging.Logger):
+    def stdout(self, line: object, *args: Any, **kws: Any) -> None:
+        ...
 
-    def stdout(self, line: object, *args: Any, **kws: Any) -> None: ...
-    def stderr(self, line: object, *args: Any, **kws: Any) -> None: ...
+    def stderr(self, line: object, *args: Any, **kws: Any) -> None:
+        ...
 
 
 def _log_stdout(self: ExtendedLogger, message: object, *args: Any, **kws: Any):
@@ -281,8 +294,9 @@ def _log_stderr(self: ExtendedLogger, message: object, *args: Any, **kws: Any):
 logging.Logger.stderr = _log_stderr  # type: ignore
 
 
-def setup_logging(master_logger: Optional[logging.Logger] = None) -> \
-        typing.Tuple[ExtendedLogger, LoggingHandler]:
+def setup_logging(
+    master_logger: Optional[logging.Logger] = None,
+) -> typing.Tuple[ExtendedLogger, LoggingHandler]:
     """Setup a fresh logger for each watch action.
 
     :param master_logger: Forward all log messages to a master logger."""
@@ -322,7 +336,7 @@ class Message(BaseClass):
     def status(self) -> int:
         """0 (OK), 1 (WARNING), 2 (CRITICAL), 3 (UNKOWN): see
         Nagios / Icinga monitoring status / state."""
-        return self._data.get('status', 0)
+        return self._data.get("status", 0)
 
     @property
     def status_text(self) -> str:
@@ -331,7 +345,7 @@ class Message(BaseClass):
 
     @property
     def service_name(self) -> str:
-        return self._data.get('service_name', 'service_not_set')
+        return self._data.get("service_name", "service_not_set")
 
     @property
     def performance_data(self) -> str:
@@ -339,23 +353,23 @@ class Message(BaseClass):
         :return: A concatenated string
         :rtype: str
         """
-        performance_data = self._data.get('performance_data')
+        performance_data = self._data.get("performance_data")
         if performance_data and isinstance(performance_data, dict):
             pairs: List[str] = []
             key: str
             value: Any
             for key, value in performance_data.items():
-                pairs.append('{!s}={!s}'.format(key, value))
-            return ' '.join(pairs)
-        return ''
+                pairs.append("{!s}={!s}".format(key, value))
+            return " ".join(pairs)
+        return ""
 
     @property
     def custom_message(self) -> str:
-        return self._data.get('custom_message', '')
+        return self._data.get("custom_message", "")
 
     @property
     def prefix(self) -> str:
-        return self._data.get('prefix', '[cwatcher]:')
+        return self._data.get("prefix", "[cwatcher]:")
 
     @property
     def message(self) -> str:
@@ -366,8 +380,8 @@ class Message(BaseClass):
         output.append(self.service_name.upper())
         output.append(self.status_text)
         if self.custom_message:
-            output.append('- {}'.format(self.custom_message))
-        return ' '.join(output)
+            output.append("- {}".format(self.custom_message))
+        return " ".join(output)
 
     @property
     def message_monitoring(self) -> str:
@@ -375,48 +389,48 @@ class Message(BaseClass):
         output: List[str] = []
         output.append(self.message)
         if self.performance_data:
-            output.append('|')
+            output.append("|")
             output.append(self.performance_data)
-        return ' '.join(output)
+        return " ".join(output)
 
     @property
     def body(self) -> str:
         """Text body for the e-mail message."""
         output: List[str] = []
-        output.append('Host: {}'.format(HOSTNAME))
-        output.append('User: {}'.format(USERNAME))
-        output.append('Service name: {}'.format(self.service_name))
+        output.append("Host: {}".format(HOSTNAME))
+        output.append("User: {}".format(USERNAME))
+        output.append("Service name: {}".format(self.service_name))
 
         if self.performance_data:
-            output.append('Performance data: {}'.format(self.performance_data))
+            output.append("Performance data: {}".format(self.performance_data))
 
-        body: str = self._data.get('body', '')
+        body: str = self._data.get("body", "")
         if body:
-            output.append('')
+            output.append("")
             output.append(body)
 
-        log_records = self._data.get('log_records', '')
+        log_records = self._data.get("log_records", "")
         if log_records:
-            output.append('')
-            output.append('Log records:')
-            output.append('')
+            output.append("")
+            output.append("Log records:")
+            output.append("")
             output.append(log_records)
 
-        return '\n'.join(output)
+        return "\n".join(output)
 
     @property
     def processes(self) -> Optional[str]:
         output: List[str] = []
-        processes = self._data.get('processes')
+        processes = self._data.get("processes")
         if processes:
             for process in processes:
-                output.append(' '.join(process.args_normalized))
+                output.append(" ".join(process.args_normalized))
         if output:
-            return'({})'.format('; '.join(output))
+            return "({})".format("; ".join(output))
 
     @property
     def user(self) -> str:
-        return '[user:{}]'.format(USERNAME)
+        return "[user:{}]".format(USERNAME)
 
 
 class BaseChannel(BaseClass, metaclass=abc.ABCMeta):
@@ -424,28 +438,39 @@ class BaseChannel(BaseClass, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def report(self, message: Message) -> None:
-        raise NotImplementedError('A reporter class must have a `report` '
-                                  'method.')
+        raise NotImplementedError("A reporter class must have a `report` " "method.")
 
 
 class EmailChannel(BaseChannel):
     """Send reports by e-mail."""
 
-    def __init__(self, smtp_server: str, smtp_login: str, smtp_password: str,
-                 to_addr: str, from_addr: str = '',
-                 to_addr_critical: str = ''):
+    def __init__(
+        self,
+        smtp_server: str,
+        smtp_login: str,
+        smtp_password: str,
+        to_addr: str,
+        from_addr: str = "",
+        to_addr_critical: str = "",
+    ):
         self.smtp_server = smtp_server
         self.smtp_login = smtp_login
         self.smtp_password = smtp_password
         self.to_addr = to_addr
         self.from_addr = from_addr
         if not from_addr:
-            self.from_addr = '{0} <{1}@{0}>'.format(HOSTNAME, USERNAME)
+            self.from_addr = "{0} <{1}@{0}>".format(HOSTNAME, USERNAME)
         self.to_addr_critical = to_addr_critical
 
     def __str__(self):
-        return self._obj_to_str(['smtp_server', 'smtp_login', 'to_addr',
-                                 'from_addr', ])
+        return self._obj_to_str(
+            [
+                "smtp_server",
+                "smtp_login",
+                "to_addr",
+                "from_addr",
+            ]
+        )
 
     def report(self, message: Message):
         """Send an e-mail message.
@@ -464,7 +489,7 @@ class EmailChannel(BaseChannel):
             body=message.body,
             smtp_login=self.smtp_login,
             smtp_password=self.smtp_password,
-            smtp_server=self.smtp_server
+            smtp_server=self.smtp_server,
         )
 
 
@@ -474,8 +499,7 @@ class IcingaChannel(BaseChannel):
     password: str
     service_name: str
 
-    def __init__(self, url: str, user: str, password: str,
-                 service_name: str):
+    def __init__(self, url: str, user: str, password: str, service_name: str):
         self.url = url
         self.user = user
         self.password = password
@@ -483,7 +507,7 @@ class IcingaChannel(BaseChannel):
 
     def __str__(self):
         # No password!
-        return self._obj_to_str(['url', 'user', 'service_name'])
+        return self._obj_to_str(["url", "user", "service_name"])
 
     def report(self, message: Message):
         icinga.send_passive_check(
@@ -494,7 +518,7 @@ class IcingaChannel(BaseChannel):
             host_name=HOSTNAME,
             service_name=message.service_name,
             text_output=message.message,
-            performance_data=message.performance_data
+            performance_data=message.performance_data,
         )
 
 
@@ -502,11 +526,11 @@ class BeepChannel(BaseChannel):
     """Send beep sounds."""
 
     def __init__(self):
-        self.cmd = shutil.which('beep')
+        self.cmd = shutil.which("beep")
 
     def __str__(self):
         # No password!
-        return self._obj_to_str(['cmd'])
+        return self._obj_to_str(["cmd"])
 
     def beep(self, frequency: float = 4186.01, length: float = 50):
         """
@@ -519,8 +543,7 @@ class BeepChannel(BaseChannel):
         :param length: Length in milliseconds.
         """
         # TODO: Use self.cmd -> Fix tests
-        subprocess.run(['beep', '-f', str(float(frequency)), '-l',
-                        str(float(length))])
+        subprocess.run(["beep", "-f", str(float(frequency)), "-l", str(float(length))])
 
     def report(self, message: Message):
         """Send a beep sounds.
@@ -561,84 +584,83 @@ reporter = Reporter()
 # Configuration ###############################################################
 
 CONF_DEFAULTS = {
-    'email': {
-        'subject_prefix': 'command_watcher',
+    "email": {
+        "subject_prefix": "command_watcher",
     },
-    'nsca': {
-        'port': 5667,
+    "nsca": {
+        "port": 5667,
     },
 }
 
 
 CONFIG_READER_SPEC: Spec = {
-    'email': {
-        'from_addr': {
-            'description': 'The email address of the sender.',
+    "email": {
+        "from_addr": {
+            "description": "The email address of the sender.",
         },
-        'to_addr': {
-            'description': 'The email address of the recipient.',
-            'not_empty': True,
+        "to_addr": {
+            "description": "The email address of the recipient.",
+            "not_empty": True,
         },
-        'to_addr_critical': {
-            'description': 'The email address of the recipient to send '
-                           'critical messages to.',
-            'default': None,
+        "to_addr_critical": {
+            "description": "The email address of the recipient to send "
+            "critical messages to.",
+            "default": None,
         },
-        'smtp_login': {
-            'description': 'The SMTP login name.',
-            'not_empty': True,
+        "smtp_login": {
+            "description": "The SMTP login name.",
+            "not_empty": True,
         },
-        'smtp_password': {
-            'description': 'The SMTP password.',
-            'not_empty': True,
+        "smtp_password": {
+            "description": "The SMTP password.",
+            "not_empty": True,
         },
-        'smtp_server': {
-            'description': 'The URL of the SMTP server, for example: '
-                           '`smtp.example.com:587`.',
-            'not_empty': True,
-        },
-    },
-    'nsca': {
-        'remote_host': {
-            'description': 'The IP address of the NSCA remote host.',
-            'not_empty': True,
-        },
-        'password': {
-            'description': 'The NSCA password.',
-            'not_empty': True,
-        },
-        'encryption_method': {
-            'description': 'The NSCA encryption method. The supported '
-                           'encryption methods are: 0 1 2 3 4 8 11 14 15 16',
-            'not_empty': True,
-        },
-        'port': {
-            'description': 'The NSCA port.',
-            'default': 5667,
+        "smtp_server": {
+            "description": "The URL of the SMTP server, for example: "
+            "`smtp.example.com:587`.",
+            "not_empty": True,
         },
     },
-    'icinga': {
-        'url': {
-            'description': 'The HTTP URL. /v1/actions/process-check-result '
-                           'is appended.',
-            'not_empty': True,
+    "nsca": {
+        "remote_host": {
+            "description": "The IP address of the NSCA remote host.",
+            "not_empty": True,
         },
-        'user': {
-            'description': 'The user for the HTTP authentification.',
-            'not_empty': True,
+        "password": {
+            "description": "The NSCA password.",
+            "not_empty": True,
         },
-        'password': {
-            'description': 'The password for the HTTP authentification.',
-            'not_empty': True,
+        "encryption_method": {
+            "description": "The NSCA encryption method. The supported "
+            "encryption methods are: 0 1 2 3 4 8 11 14 15 16",
+            "not_empty": True,
+        },
+        "port": {
+            "description": "The NSCA port.",
+            "default": 5667,
         },
     },
-    'beep': {
-        'activated': {
-            'description': 'Activate the beep channel to report auditive '
-                           'messages.',
-            'default': False,
+    "icinga": {
+        "url": {
+            "description": "The HTTP URL. /v1/actions/process-check-result "
+            "is appended.",
+            "not_empty": True,
+        },
+        "user": {
+            "description": "The user for the HTTP authentification.",
+            "not_empty": True,
+        },
+        "password": {
+            "description": "The password for the HTTP authentification.",
+            "not_empty": True,
+        },
+    },
+    "beep": {
+        "activated": {
+            "description": "Activate the beep channel to report auditive " "messages.",
+            "default": False,
         }
-    }
+    },
 }
 
 
@@ -670,10 +692,11 @@ class Process:
     :param args: List, tuple or string. A sequence of
         process arguments, like `subprocess.Popen(args)`.
     """
+
     args: Args
     """Process arguments in various types."""
 
-    _queue: 'queue.Queue[Optional[Tuple[bytes, capturing.Stream]]]'
+    _queue: "queue.Queue[Optional[Tuple[bytes, capturing.Stream]]]"
 
     log: ExtendedLogger
     """A ready to go and configured logger."""
@@ -682,9 +705,12 @@ class Process:
 
     subprocess: subprocess.Popen[Any]
 
-    def __init__(self, args: Args,
-                 master_logger: Optional[ExtendedLogger] = None,
-                 **kwargs: Unpack[ProcessArgs]):
+    def __init__(
+        self,
+        args: Args,
+        master_logger: Optional[ExtendedLogger] = None,
+        **kwargs: Unpack[ProcessArgs],
+    ):
         # self.args: typing.Union[str, list, tuple] = args
         self.args = args
 
@@ -694,7 +720,7 @@ class Process:
         self.log = log
         self.log_handler = log_handler
 
-        self.log.info('Run command: {}'.format(' '.join(self.args_normalized)))
+        self.log.info("Run command: {}".format(" ".join(self.args_normalized)))
         timer = Timer()
         self.subprocess = subprocess.Popen(
             self.args_normalized,
@@ -703,24 +729,24 @@ class Process:
             # RuntimeWarning: line buffering (buffering=1) isn't
             # supported in binary mode, the default buffer size will be used
             # bufsize=1,
-            **kwargs
+            **kwargs,
         )
 
-        self._start_thread(self.subprocess.stdout, 'stdout')
-        self._start_thread(self.subprocess.stderr, 'stderr')
+        self._start_thread(self.subprocess.stdout, "stdout")
+        self._start_thread(self.subprocess.stderr, "stderr")
 
         for _ in range(2):
             for line, stream in iter(self._queue.get, None):
                 if line:
-                    line = line.decode('utf-8').strip()
+                    line = line.decode("utf-8").strip()
 
                 if line:
-                    if stream == 'stderr':
+                    if stream == "stderr":
                         self.log.stderr(line)
-                    if stream == 'stdout':
+                    if stream == "stdout":
                         self.log.stdout(line)
         self.subprocess.wait()
-        self.log.info('Execution time: {}'.format(timer.result()))
+        self.log.info("Execution time: {}".format(timer.result()))
 
     @property
     def args_normalized(self) -> Sequence[str]:
@@ -756,7 +782,7 @@ class Process:
         """
         try:
             with pipe:
-                for line in iter(pipe.readline, b''):
+                for line in iter(pipe.readline, b""):
                     self._queue.put((line, stream))
         finally:
             self._queue.put(None)
@@ -765,10 +791,7 @@ class Process:
         """
         :param object pipe: `process.stdout` or `process.stdout`
         """
-        threading.Thread(
-            target=self._stdout_stderr_reader,
-            args=[pipe, stream]
-        ).start()
+        threading.Thread(target=self._stdout_stderr_reader, args=[pipe, stream]).start()
 
 
 class Watch:
@@ -807,11 +830,14 @@ class Watch:
 
     _timer: Timer
 
-    def __init__(self, config_file: Optional[str] = None,
-                 service_name: str = 'command_watcher',
-                 raise_exceptions: bool = True,
-                 config_reader: Optional[ConfigReader] = None,
-                 report_channels: Optional[List[BaseChannel]] = None):
+    def __init__(
+        self,
+        config_file: Optional[str] = None,
+        service_name: str = "command_watcher",
+        raise_exceptions: bool = True,
+        config_reader: Optional[ConfigReader] = None,
+        report_channels: Optional[List[BaseChannel]] = None,
+    ):
         self._hostname = HOSTNAME
 
         self._service_name = service_name
@@ -819,7 +845,7 @@ class Watch:
         log, log_handler = setup_logging()
 
         self.log = log
-        self.log.info('Hostname: {}'.format(self._hostname))
+        self.log.info("Hostname: {}".format(self._hostname))
 
         self._log_handler = log_handler
 
@@ -833,13 +859,13 @@ class Watch:
             )
 
         if not config_reader:
-            raise Exception('No config_reader object')
+            raise Exception("No config_reader object")
 
         self._conf = config_reader.get_class_interface()
 
         if report_channels is None:
             try:
-                config_reader.check_section('email')
+                config_reader.check_section("email")
                 email_reporter = EmailChannel(
                     smtp_server=self._conf.email.smtp_server,
                     smtp_login=self._conf.email.smtp_login,
@@ -854,7 +880,7 @@ class Watch:
                 pass
 
             try:
-                config_reader.check_section('icinga')
+                config_reader.check_section("icinga")
                 icinga_reporter = IcingaChannel(
                     url=self._conf.icinga.url,
                     user=self._conf.icinga.user,
@@ -866,7 +892,7 @@ class Watch:
             except (ValueError, KeyError):
                 pass
 
-            if shutil.which('beep') and self._conf.beep.activated:
+            if shutil.which("beep") and self._conf.beep.activated:
                 beep_reporter = BeepChannel()
                 reporter.add_channel(beep_reporter)
                 self.log.debug(beep_reporter)
@@ -890,11 +916,13 @@ class Watch:
         """Alias / shortcut for `self._log_handler.stderr`."""
         return self._log_handler.stderr
 
-    def run(self,
-            args: Args,
-            log: bool = True,
-            ignore_exceptions: List[int] = [],
-            **kwargs: Unpack[ProcessArgs]) -> Process:
+    def run(
+        self,
+        args: Args,
+        log: bool = True,
+        ignore_exceptions: List[int] = [],
+        **kwargs: Unpack[ProcessArgs],
+    ) -> Process:
         """
         Run a process.
 
@@ -915,17 +943,16 @@ class Watch:
         rc = process.subprocess.returncode
         if self._raise_exceptions and rc != 0 and rc not in ignore_exceptions:
             raise CommandWatcherError(
-                'The command \'{}\' exists with an non-zero return code ({}).'
-                .format(' '.join(process.args_normalized), rc),
+                "The command '{}' exists with an non-zero return code ({}).".format(
+                    " ".join(process.args_normalized), rc
+                ),
                 service_name=self._service_name,
                 log_records=self._log_handler.all_records,
             )
         return process
 
-    def report(self, status: Status,
-               **data: Unpack[MinimalMessageParams]) -> Message:
-        """Report a message using the preconfigured channels.
-        """
+    def report(self, status: Status, **data: Unpack[MinimalMessageParams]) -> Message:
+        """Report a message using the preconfigured channels."""
         message = reporter.report(
             status=status,
             service_name=self._service_name,
@@ -941,14 +968,12 @@ class Watch:
         `performance_data`.
         """
         timer_result = self._timer.result()
-        self.log.info(
-            'Overall execution time: {}'.format(timer_result)
-        )
-        status = data.get('status', 0)
+        self.log.info("Overall execution time: {}".format(timer_result))
+        status = data.get("status", 0)
         data_dict: Dict[str, Any] = dict(data)
-        if 'performance_data' not in data_dict:
-            data_dict['performance_data'] = {}
-        data_dict['performance_data']['execution_time'] = timer_result
-        if 'status' in data_dict:
-            del data_dict['status']
+        if "performance_data" not in data_dict:
+            data_dict["performance_data"] = {}
+        data_dict["performance_data"]["execution_time"] = timer_result
+        if "status" in data_dict:
+            del data_dict["status"]
         return self.report(status=status, **data_dict)

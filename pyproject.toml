@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "A collection of my Python library snippets. Maybe they are useful for someone else."
 authors = ["Josef Friedrich <josef@friedrich.rocks>"]
 license = "MIT"
-readme = "README.md"
+readme = "README.rst"
 repository = "https://github.com/Josef-Friedrich/jflib"
 classifiers = [
     "Development Status :: 5 - Production/Stable",

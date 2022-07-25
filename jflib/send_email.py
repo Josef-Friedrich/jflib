@@ -4,8 +4,15 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 
 
-def send_email(from_addr: str, to_addr: str, subject: str, body: str,
-               smtp_login: str, smtp_password: str, smtp_server: str):
+def send_email(
+    from_addr: str,
+    to_addr: str,
+    subject: str,
+    body: str,
+    smtp_login: str,
+    smtp_password: str,
+    smtp_server: str,
+):
     """
     Send a email.
 
@@ -20,12 +27,12 @@ def send_email(from_addr: str, to_addr: str, subject: str, body: str,
 
     :return: Problems
     """
-    message = MIMEText(body, 'plain', 'utf-8')
+    message = MIMEText(body, "plain", "utf-8")
 
-    message['Subject'] = Header(subject, 'utf-8')
-    message['From'] = from_addr
-    message['To'] = to_addr
-    message['Date'] = formatdate(localtime=True)
+    message["Subject"] = Header(subject, "utf-8")
+    message["From"] = from_addr
+    message["To"] = to_addr
+    message["Date"] = formatdate(localtime=True)
 
     server = smtplib.SMTP(smtp_server)
     server.starttls()

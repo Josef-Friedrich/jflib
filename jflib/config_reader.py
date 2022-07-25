@@ -54,11 +54,10 @@ class IniReaderError(Exception):
 
 def validate_key(key: str) -> bool:
     """:param key: Validate the name of a section or a key."""
-    if re.match(r'^[a-zA-Z0-9_]+$', key):
+    if re.match(r"^[a-zA-Z0-9_]+$", key):
         return True
     raise ValueError(
-        'The key “{}” contains invalid characters (allowed: a-zA-Z0-9_).'
-        .format(key)
+        "The key “{}” contains invalid characters (allowed: a-zA-Z0-9_).".format(key)
     )
 
 
@@ -74,7 +73,7 @@ class ReaderBase(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get(self, section: str, key: str) -> Any:
-        raise NotImplementedError('A reader class must have a `get` method.')
+        raise NotImplementedError("A reader class must have a `get` method.")
 
 
 Mapping = Dict[str, str]
@@ -136,20 +135,21 @@ class ArgparseReader(ReaderBase):
 
         :return: The configuration value stored under a section and a key.
         """
-        mapping_key = '{}.{}'.format(section, key)
+        mapping_key = "{}.{}".format(section, key)
         if mapping_key in self._mapping:
             argparse_dest = self._mapping[mapping_key]
         else:
-            argparse_dest = '{}_{}'.format(section, key).lower()
+            argparse_dest = "{}_{}".format(section, key).lower()
 
         if hasattr(self._args, argparse_dest):
             value = getattr(self._args, argparse_dest)
             if value is not None:
                 return value
 
-        self._exception('Configuration value could not be found by '
-                        'Argparse (section “{}” key “{}”).'
-                        .format(section, key))
+        self._exception(
+            "Configuration value could not be found by "
+            "Argparse (section “{}” key “{}”).".format(section, key)
+        )
 
 
 class DictionaryReader(ReaderBase):
@@ -176,8 +176,7 @@ class DictionaryReader(ReaderBase):
             return self._dictionary[section][key]
         except KeyError:
             self._exception(
-                'In the dictionary is no value at dict[{}][{}]'
-                .format(section, key)
+                "In the dictionary is no value at dict[{}][{}]".format(section, key)
             )
 
 
@@ -203,12 +202,12 @@ class EnvironReader(ReaderBase):
         :return: The configuration value stored under a section and a key.
         """
         if self._prefix:
-            key = '{}__{}__{}'.format(self._prefix, section, key)
+            key = "{}__{}__{}".format(self._prefix, section, key)
         else:
-            key = '{}__{}'.format(section, key)
+            key = "{}__{}".format(section, key)
         if key in os.environ:
             return os.environ[key]
-        self._exception('Environment variable not found: {}'.format(key))
+        self._exception("Environment variable not found: {}".format(key))
 
 
 class IniReader(ReaderBase):
@@ -221,8 +220,7 @@ class IniReader(ReaderBase):
         self._config = configparser.ConfigParser()
         if not path or not os.path.exists(path):
             raise IniReaderError(
-                'Ini configuration path “{}” couldn’t be opened.'
-                .format(path)
+                "Ini configuration path “{}” couldn’t be opened.".format(path)
             )
         self._config.read_file(open(path))
 
@@ -240,8 +238,10 @@ class IniReader(ReaderBase):
         try:
             return self._config[section][key]
         except KeyError:
-            self._exception('Configuration value could not be found '
-                            '(section “{}” key “{}”).'.format(section, key))
+            self._exception(
+                "Configuration value could not be found "
+                "(section “{}” key “{}”).".format(section, key)
+            )
 
 
 class SpecReader(ReaderBase):
@@ -267,10 +267,12 @@ class SpecReader(ReaderBase):
         :return: The configuration value stored under a section and a key.
         """
         try:
-            return self._spec[section][key]['default']
+            return self._spec[section][key]["default"]
         except KeyError:
-            self._exception('Configuration value could not be found '
-                            '(section “{}” key “{}”).'.format(section, key))
+            self._exception(
+                "Configuration value could not be found "
+                "(section “{}” key “{}”).".format(section, key)
+            )
 
 
 # Common code #################################################################
@@ -301,8 +303,10 @@ class ReaderSelector(ReaderBase):
                 return reader.get(section, key)
             except ConfigValueError:
                 pass
-        raise ValueError('Configuration value could not be found '
-                         '(section “{}” key “{}”).'.format(section, key))
+        raise ValueError(
+            "Configuration value could not be found "
+            "(section “{}” key “{}”).".format(section, key)
+        )
 
 
 def auto_type(value: Any) -> Any:
@@ -319,7 +323,6 @@ def auto_type(value: Any) -> Any:
 
 
 class DictionaryInterfaceKey:
-
     def __init__(self, reader: ReaderBase, section: str):
         self._reader = reader
         self._section = section
@@ -329,7 +332,6 @@ class DictionaryInterfaceKey:
 
 
 class DictionaryInterface:
-
     def __init__(self, reader: ReaderBase):
         self._reader = reader
 
@@ -338,7 +340,6 @@ class DictionaryInterface:
 
 
 class ClassInterfaceKey:
-
     def __init__(self, reader: ReaderBase, section: str):
         self._reader = reader
         self._section = section
@@ -348,7 +349,6 @@ class ClassInterfaceKey:
 
 
 class ClassInterface:
-
     def __init__(self, reader: ReaderBase):
         self._reader = reader
 
@@ -376,18 +376,18 @@ def load_readers_by_keyword(**kwargs: Any) -> List[ReaderBase]:
     """
     readers: List[ReaderBase] = []
     for keyword, value in kwargs.items():
-        if keyword == 'argparse':
+        if keyword == "argparse":
             if isinstance(value, tuple) or isinstance(value, list):
                 readers.append(ArgparseReader(args=value[0], mapping=value[1]))
-            elif value.__class__.__name__ == 'Namespace':
+            elif value.__class__.__name__ == "Namespace":
                 readers.append(ArgparseReader(args=value))
-        elif keyword == 'dictionary':
+        elif keyword == "dictionary":
             readers.append(DictionaryReader(dictionary=value))
-        elif keyword == 'environ':
+        elif keyword == "environ":
             readers.append(EnvironReader(prefix=value))
-        elif keyword == 'ini':
+        elif keyword == "ini":
             readers.append(IniReader(path=value))
-        elif keyword == 'spec':
+        elif keyword == "spec":
             readers.append(SpecReader(spec=value))
     return readers
 
@@ -442,23 +442,22 @@ class ConfigReader:
         """
         for key, value_spec in self.spec[section].items():
             value = self.reader.get(section, key)
-            if 'not_empty' in value_spec and \
-               value_spec['not_empty'] and not value:
-                raise ValueError('Spec check: section ”{}” key “{}” is empty.'
-                                 .format(section, key))
+            if "not_empty" in value_spec and value_spec["not_empty"] and not value:
+                raise ValueError(
+                    "Spec check: section ”{}” key “{}” is empty.".format(section, key)
+                )
         return True
 
     def spec_to_argparse(self, parser: argparse.ArgumentParser) -> None:
         for section, _ in self.spec.items():
             group = parser.add_argument_group(
-                title=section,
-                description='Generated by the config_reader.'
+                title=section, description="Generated by the config_reader."
             )
             for key, value in self.spec[section].items():
-                argument = '--{}-{}'.format(section, key).replace('_', '-')
+                argument = "--{}-{}".format(section, key).replace("_", "-")
                 kwargs = {}
-                if 'description' in value:
-                    kwargs['help'] = value['description']
-                if 'default' in value:
-                    kwargs['default'] = value['default']
+                if "description" in value:
+                    kwargs["help"] = value["description"]
+                if "default" in value:
+                    kwargs["default"] = value["default"]
                 group.add_argument(argument, **kwargs)

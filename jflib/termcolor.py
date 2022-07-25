@@ -28,66 +28,67 @@ import os
 import re
 from typing import List, Optional
 
-__ALL__ = ['colored', 'cprint']
+__ALL__ = ["colored", "cprint"]
 
 VERSION = (1, 1, 0)
 
 ATTRIBUTES = dict(
-    list(zip([
-        'bold',
-        'dark',
-        '',
-        'underline',
-        'blink',
-        '',
-        'reverse',
-        'concealed'
-    ],
-        list(range(1, 9))
-    ))
+    list(
+        zip(
+            ["bold", "dark", "", "underline", "blink", "", "reverse", "concealed"],
+            list(range(1, 9)),
+        )
+    )
 )
-del ATTRIBUTES['']
+del ATTRIBUTES[""]
 
 
 HIGHLIGHTS = dict(
-    list(zip([
-        'on_grey',
-        'on_red',
-        'on_green',
-        'on_yellow',
-        'on_blue',
-        'on_magenta',
-        'on_cyan',
-        'on_white'
-    ],
-        list(range(40, 48))
-    ))
+    list(
+        zip(
+            [
+                "on_grey",
+                "on_red",
+                "on_green",
+                "on_yellow",
+                "on_blue",
+                "on_magenta",
+                "on_cyan",
+                "on_white",
+            ],
+            list(range(40, 48)),
+        )
+    )
 )
 
 
 COLORS = dict(
-    list(zip([
-        'grey',
-        'red',
-        'green',
-        'yellow',
-        'blue',
-        'magenta',
-        'cyan',
-        'white',
-    ],
-        list(range(30, 38))
-    ))
+    list(
+        zip(
+            [
+                "grey",
+                "red",
+                "green",
+                "yellow",
+                "blue",
+                "magenta",
+                "cyan",
+                "white",
+            ],
+            list(range(30, 38)),
+        )
+    )
 )
 
 
-RESET = '\033[0m'
+RESET = "\033[0m"
 
 
 def remove_color(text: str) -> str:
     """https://stackoverflow.com/a/14693789/10193818"""
     # 7-bit and 8-bit C1 ANSI sequences
-    ansi_escape_8bit = re.compile(r'''
+    ansi_escape_8bit = re.compile(
+        r"""
         (?: # either 7-bit C1, two bytes, ESC Fe (omitting CSI)
             \x1B
             [@-Z\\-_]
@@ -103,13 +104,18 @@ def remove_color(text: str) -> str:
             [ -/]*  # Intermediate bytes
             [@-~]   # Final byte
         )
-    ''', re.VERBOSE)
-    return ansi_escape_8bit.sub('', text)
+    """,
+        re.VERBOSE,
+    )
+    return ansi_escape_8bit.sub("", text)
 
 
-def colored(text: str, color: Optional[str] = None,
-            on_color: Optional[str] = None,
-            attrs: Optional[List[str]] = None) -> str:
+def colored(
+    text: str,
+    color: Optional[str] = None,
+    on_color: Optional[str] = None,
+    attrs: Optional[List[str]] = None,
+) -> str:
     """Colorize text.
 
     Available text colors:
@@ -125,8 +131,8 @@ def colored(text: str, color: Optional[str] = None,
         colored('Hello, World!', 'red', 'on_grey', ['blue', 'blink'])
         colored('Hello, World!', 'green')
     """
-    if os.getenv('ANSI_COLORS_DISABLED') is None:
-        fmt_str = '\033[%dm%s'
+    if os.getenv("ANSI_COLORS_DISABLED") is None:
+        fmt_str = "\033[%dm%s"
         if color is not None:
             text = fmt_str % (COLORS[color], text)
 
@@ -141,9 +147,11 @@ def colored(text: str, color: Optional[str] = None,
     return text
 
 
-def cprint(text: str, color: Optional[str] = None,
-           on_color: Optional[str] = None,
-           attrs: Optional[List[str]] = None):
-    """Print colorize text.
-    """
+def cprint(
+    text: str,
+    color: Optional[str] = None,
+    on_color: Optional[str] = None,
+    attrs: Optional[List[str]] = None,
+):
+    """Print colorize text."""
     print((colored(text, color, on_color, attrs)))

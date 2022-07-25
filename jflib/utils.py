@@ -12,8 +12,7 @@ def download(url: str, dest: str) -> None:
     :param url: The URL of the file to download.
     :param dest: The path of the destination file.
     """
-    with urllib.request.urlopen(url) as response, \
-            open(dest, 'wb') as out_file:
+    with urllib.request.urlopen(url) as response, open(dest, "wb") as out_file:
         shutil.copyfileobj(response, out_file)
 
 

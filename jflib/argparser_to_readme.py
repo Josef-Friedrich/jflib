@@ -4,10 +4,10 @@ from typing import Callable, List
 
 def argparser_to_readme(
     argparser: Callable[[], ArgumentParser],
-    template: str = 'README-template.md',
-    destination: str = 'README.md',
+    template: str = "README-template.md",
+    destination: str = "README.md",
     indentation: int = 0,
-    placeholder: str = '{{ argparse }}'
+    placeholder: str = "{{ argparse }}",
 ) -> None:
     """Add the formatted help output of a command line utility using the
     Python module `argparse` to a README file.
@@ -26,16 +26,16 @@ def argparser_to_readme(
 
     if indentation > 0:
         indent_lines: List[str] = []
-        lines = help_string.split('\n')
+        lines = help_string.split("\n")
         for line in lines:
-            indent_lines.append(' ' * indentation + line)
+            indent_lines.append(" " * indentation + line)
 
-        help_string = '\n'.join(indent_lines)
+        help_string = "\n".join(indent_lines)
 
-    with open(template, 'r', encoding='utf-8') as template_file:
+    with open(template, "r", encoding="utf-8") as template_file:
         template_string = template_file.read()
         readme = template_string.replace(placeholder, help_string)
 
-    readme_file = open(destination, 'w')
+    readme_file = open(destination, "w")
     readme_file.write(readme)
     readme_file.close()

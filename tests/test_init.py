@@ -1,11 +1,17 @@
 import unittest
 
-from jflib import (Capturing, ConfigReader, Watch, argparser_to_readme,
-                   colored, cprint, send_email)
+from jflib import (
+    Capturing,
+    ConfigReader,
+    Watch,
+    argparser_to_readme,
+    colored,
+    cprint,
+    send_email,
+)
 
 
 class TestImports(unittest.TestCase):
-
     def test_argparser_to_readme(self):
         self.assertTrue(callable(argparser_to_readme))
 
