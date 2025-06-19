@@ -30,21 +30,19 @@ packaging==24.1
 pygments==2.18.0
     # via sphinx
 requests==2.32.0
-    # via
-    #   jflib (pyproject.toml)
-    #   sphinx
+    # via sphinx
 snowballstemmer==2.2.0
     # via sphinx
 sphinx==7.4.7
     # via
-    #   -r docs/requirements.in
+    #   -r requirements.in
     #   sphinx-argparse
     #   sphinx-rtd-theme
     #   sphinxcontrib-jquery
 sphinx-argparse==0.5.2
-    # via -r docs/requirements.in
+    # via -r requirements.in
 sphinx-rtd-theme==2.0.0
-    # via -r docs/requirements.in
+    # via -r requirements.in
 sphinxcontrib-applehelp==2.0.0
     # via sphinx
 sphinxcontrib-devhelp==2.0.0
@@ -61,7 +59,5 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 tomli==2.0.1
     # via sphinx
-typing-extensions==4.3.0
-    # via jflib (pyproject.toml)
-urllib3==2.2.2
+urllib3==2.5.0
     # via requests
